@@ -194,16 +194,16 @@ impl Utf8 {
                     pos.set_index(candidate);
                     return Ok(actual);
                 }
-                return Self::fail(pos, candidate, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, candidate, UnicodeErrorKind::Malformed);
             }
             if !Self::is_trailing(byte) {
-                return Self::fail(pos, candidate, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, candidate, UnicodeErrorKind::Malformed);
             }
             if index - candidate >= Self::MAX_CODE_UNIT_COUNT - 1 {
-                return Self::fail(pos, candidate, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, candidate, UnicodeErrorKind::Malformed);
             }
         }
-        Self::fail(pos, start_index, UnicodeErrorKind::Incomplete)
+        UnicodeError::fail(pos, start_index, UnicodeErrorKind::Incomplete)
     }
 
     /// Moves a cursor from a leading byte to the terminal byte of its UTF-8 code point.
@@ -244,7 +244,7 @@ impl Utf8 {
         let trailing_count = Self::trailing_count(buffer[index]).expect("leading byte");
         let terminal_index = index + trailing_count;
         if terminal_index >= end_index {
-            return Self::fail(pos, end_index, UnicodeErrorKind::Incomplete);
+            return UnicodeError::fail(pos, end_index, UnicodeErrorKind::Incomplete);
         }
         for (current, byte) in buffer
             .iter()
@@ -253,7 +253,7 @@ impl Utf8 {
             .skip(index + 1)
         {
             if !Self::is_trailing(*byte) {
-                return Self::fail(pos, current, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, current, UnicodeErrorKind::Malformed);
             }
         }
         pos.set_index(terminal_index);
@@ -333,7 +333,7 @@ impl Utf8 {
             return Ok(1);
         }
         if !Self::is_trailing(previous) {
-            return Self::fail(pos, previous_index, UnicodeErrorKind::Malformed);
+            return UnicodeError::fail(pos, previous_index, UnicodeErrorKind::Malformed);
         }
         for candidate in (start_index..previous_index).rev() {
             let byte = buffer[candidate];
@@ -344,16 +344,16 @@ impl Utf8 {
                     pos.set_index(candidate);
                     return Ok(actual);
                 }
-                return Self::fail(pos, candidate, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, candidate, UnicodeErrorKind::Malformed);
             }
             if !Self::is_trailing(byte) {
-                return Self::fail(pos, candidate, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, candidate, UnicodeErrorKind::Malformed);
             }
             if index - candidate >= Self::MAX_CODE_UNIT_COUNT {
-                return Self::fail(pos, candidate, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, candidate, UnicodeErrorKind::Malformed);
             }
         }
-        Self::fail(pos, start_index, UnicodeErrorKind::Incomplete)
+        UnicodeError::fail(pos, start_index, UnicodeErrorKind::Incomplete)
     }
 
     /// Reads the next UTF-8 code point and advances the cursor.
@@ -396,16 +396,16 @@ impl Utf8 {
             return Ok(Some(c0 as char));
         }
         if c0 < 0xc2 {
-            return Self::fail(pos, index, UnicodeErrorKind::Malformed);
+            return UnicodeError::fail(pos, index, UnicodeErrorKind::Malformed);
         }
         if c0 <= 0xdf {
             if end_index - index < 2 {
-                return Self::fail(pos, end_index, UnicodeErrorKind::Incomplete);
+                return UnicodeError::fail(pos, end_index, UnicodeErrorKind::Incomplete);
             }
             let p1 = index + 1;
             let c1 = buffer[p1];
             if !Self::is_trailing(c1) {
-                return Self::fail(pos, p1, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, p1, UnicodeErrorKind::Malformed);
             }
             let code_point = (((c0 & 0x1f) as u32) << 6) | ((c1 & 0x3f) as u32);
             let ch = char::from_u32(code_point).expect("validated UTF-8 scalar value");
@@ -414,17 +414,17 @@ impl Utf8 {
         }
         if c0 <= 0xef {
             if end_index - index < 3 {
-                return Self::fail(pos, end_index, UnicodeErrorKind::Incomplete);
+                return UnicodeError::fail(pos, end_index, UnicodeErrorKind::Incomplete);
             }
             let p1 = index + 1;
             let c1 = buffer[p1];
             if !Self::is_trailing(c1) || (c0 == 0xe0 && c1 < 0xa0) || (c0 == 0xed && c1 > 0x9f) {
-                return Self::fail(pos, p1, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, p1, UnicodeErrorKind::Malformed);
             }
             let p2 = index + 2;
             let c2 = buffer[p2];
             if !Self::is_trailing(c2) {
-                return Self::fail(pos, p2, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, p2, UnicodeErrorKind::Malformed);
             }
             let code_point =
                 (((c0 & 0x0f) as u32) << 12) | (((c1 & 0x3f) as u32) << 6) | ((c2 & 0x3f) as u32);
@@ -434,22 +434,22 @@ impl Utf8 {
         }
         if c0 <= 0xf4 {
             if end_index - index < 4 {
-                return Self::fail(pos, end_index, UnicodeErrorKind::Incomplete);
+                return UnicodeError::fail(pos, end_index, UnicodeErrorKind::Incomplete);
             }
             let p1 = index + 1;
             let c1 = buffer[p1];
             if !Self::is_trailing(c1) || (c0 == 0xf0 && c1 < 0x90) || (c0 == 0xf4 && c1 > 0x8f) {
-                return Self::fail(pos, p1, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, p1, UnicodeErrorKind::Malformed);
             }
             let p2 = index + 2;
             let c2 = buffer[p2];
             if !Self::is_trailing(c2) {
-                return Self::fail(pos, p2, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, p2, UnicodeErrorKind::Malformed);
             }
             let p3 = index + 3;
             let c3 = buffer[p3];
             if !Self::is_trailing(c3) {
-                return Self::fail(pos, p3, UnicodeErrorKind::Malformed);
+                return UnicodeError::fail(pos, p3, UnicodeErrorKind::Malformed);
             }
             let code_point = (((c0 & 0x07) as u32) << 18)
                 | (((c1 & 0x3f) as u32) << 12)
@@ -459,7 +459,7 @@ impl Utf8 {
             pos.set_index(index + 4);
             return Ok(Some(ch));
         }
-        Self::fail(pos, index, UnicodeErrorKind::Malformed)
+        UnicodeError::fail(pos, index, UnicodeErrorKind::Malformed)
     }
 
     /// Reads the previous UTF-8 code point and moves the cursor to its start.
@@ -568,31 +568,5 @@ impl Utf8 {
             buffer[index + 3] = ((code_point & 0x3f) as u8) | 0x80;
         }
         Ok(count)
-    }
-
-    /// Records an error on a cursor and returns it.
-    ///
-    /// # Parameters
-    ///
-    /// - `pos`: The cursor on which the error state is recorded.
-    /// - `index`: The input or output index at which the error was detected.
-    /// - `kind`: The kind of Unicode error to report.
-    ///
-    /// # Returns
-    ///
-    /// Always returns `Err(UnicodeError)` carrying `kind` and `index`.
-    ///
-    /// # Errors
-    ///
-    /// This helper always returns an error and also stores the same error state
-    /// in `pos`.
-    #[inline]
-    fn fail<T>(
-        pos: &mut ParsingPosition,
-        index: usize,
-        kind: UnicodeErrorKind,
-    ) -> UnicodeResult<T> {
-        pos.set_error(index, kind);
-        Err(UnicodeError::new(kind, index))
     }
 }
