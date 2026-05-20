@@ -63,6 +63,42 @@ fn test_utf8_get_next_and_get_previous_move_across_code_points() {
 }
 
 #[test]
+fn test_utf8_get_next_and_get_previous_accept_table_3_7_boundaries() {
+    let cases: &[(&[u8], u32)] = &[
+        (&[0x00], 0x0000),
+        (&[0x7f], 0x007f),
+        (&[0xc2, 0x80], 0x0080),
+        (&[0xdf, 0xbf], 0x07ff),
+        (&[0xe0, 0xa0, 0x80], 0x0800),
+        (&[0xed, 0x9f, 0xbf], 0xd7ff),
+        (&[0xee, 0x80, 0x80], 0xe000),
+        (&[0xef, 0xbf, 0xbf], 0xffff),
+        (&[0xf0, 0x90, 0x80, 0x80], 0x10000),
+        (&[0xf1, 0x80, 0x80, 0x80], 0x40000),
+        (&[0xf3, 0xbf, 0xbf, 0xbf], 0xfffff),
+        (&[0xf4, 0x8f, 0xbf, 0xbf], 0x10ffff),
+    ];
+
+    for &(bytes, code_point) in cases {
+        let expected = char::from_u32(code_point).expect("test case must be a scalar value");
+
+        let mut next_pos = ParsingPosition::new(0);
+        assert_eq!(
+            Some(expected),
+            Utf8::get_next(&mut next_pos, bytes, bytes.len()).expect("well-formed UTF-8")
+        );
+        assert_eq!(bytes.len(), next_pos.index());
+
+        let mut previous_pos = ParsingPosition::new(bytes.len());
+        assert_eq!(
+            Some(expected),
+            Utf8::get_previous(&mut previous_pos, bytes, 0).expect("well-formed UTF-8")
+        );
+        assert_eq!(0, previous_pos.index());
+    }
+}
+
+#[test]
 fn test_utf8_forward_backward_and_boundary_adjustment() {
     let bytes = "A中😀".as_bytes();
     let mut pos = ParsingPosition::new(1);
@@ -134,6 +170,18 @@ fn test_utf8_put_encodes_scalar_values() {
     let mut buffer = [0; Utf8::MAX_CODE_UNIT_COUNT];
     let end_index = buffer.len();
 
+    let cases = [
+        0x0000, 0x007f, 0x0080, 0x07ff, 0x0800, 0xd7ff, 0xe000, 0xffff, 0x10000, 0x10ffff,
+    ];
+    for code_point in cases {
+        buffer.fill(0);
+        let count = Utf8::put(code_point, 0, &mut buffer, end_index).expect("encode scalar");
+        let ch = char::from_u32(code_point).expect("test case must be a scalar value");
+        let mut expected = [0; Utf8::MAX_CODE_UNIT_COUNT];
+        let expected = ch.encode_utf8(&mut expected);
+        assert_eq!(expected.as_bytes(), &buffer[..count]);
+    }
+
     let count = Utf8::put('中' as u32, 0, &mut buffer, end_index).expect("encode CJK");
     assert_eq!(3, count);
     assert_eq!("中".as_bytes(), &buffer[..count]);
@@ -157,8 +205,78 @@ fn test_utf8_reports_malformed_incomplete_and_overflow() {
     assert_eq!(Some(2), pos.error_index());
 
     pos.reset(0);
+    let err = Utf8::get_next(&mut pos, &[0xc2], 1).expect_err("truncated two-byte sequence");
+    assert_eq!(UnicodeErrorKind::Incomplete, err.kind());
+    assert_eq!(Some(1), pos.error_index());
+
+    pos.reset(0);
+    let err =
+        Utf8::get_next(&mut pos, &[0xf0, 0x90, 0x80], 3).expect_err("truncated four-byte sequence");
+    assert_eq!(UnicodeErrorKind::Incomplete, err.kind());
+    assert_eq!(Some(3), pos.error_index());
+
+    pos.reset(0);
     let err = Utf8::get_next(&mut pos, &[0xed, 0xa0, 0x80], 3).expect_err("surrogate");
     assert_eq!(UnicodeErrorKind::Malformed, err.kind());
+
+    let malformed_next_cases: &[(&[u8], usize, &str)] = &[
+        (&[0xc2, 0x20], 1, "invalid two-byte continuation"),
+        (&[0xe0, 0x9f, 0x80], 1, "overlong three-byte sequence"),
+        (&[0xed, 0xa0, 0x80], 1, "UTF-8 surrogate sequence"),
+        (&[0xe1, 0x80, 0x20], 2, "invalid third byte"),
+        (&[0xf0, 0x8f, 0xbf, 0xbf], 1, "overlong four-byte sequence"),
+        (&[0xf4, 0x90, 0x80, 0x80], 1, "code point above U+10FFFF"),
+        (
+            &[0xf1, 0x80, 0x20, 0x80],
+            2,
+            "invalid third byte in four-byte sequence",
+        ),
+        (&[0xf1, 0x80, 0x80, 0x20], 3, "invalid fourth byte"),
+        (&[0xf5, 0x80, 0x80, 0x80], 0, "disallowed leading byte"),
+        (&[0xe1, 0xc0, 0x80], 1, "invalid second byte"),
+    ];
+    for &(bytes, error_index, label) in malformed_next_cases {
+        pos.reset(0);
+        let err = Utf8::get_next(&mut pos, bytes, bytes.len()).expect_err(label);
+        assert_eq!(UnicodeErrorKind::Malformed, err.kind(), "{label}");
+        assert_eq!(Some(error_index), pos.error_index(), "{label}");
+    }
+
+    let malformed_previous_cases: &[(&[u8], usize, &str)] = &[
+        (&[0xe0, 0x9f, 0x80], 1, "overlong three-byte sequence"),
+        (&[0xed, 0xa0, 0x80], 1, "UTF-8 surrogate sequence"),
+        (&[0xf0, 0x8f, 0xbf, 0xbf], 1, "overlong four-byte sequence"),
+        (&[0xf4, 0x90, 0x80, 0x80], 1, "code point above U+10FFFF"),
+        (
+            &[0xf1, 0x80, 0x20, 0x80],
+            2,
+            "invalid third byte in four-byte sequence",
+        ),
+        (&[0xe1, 0xc0, 0x80], 1, "invalid second byte"),
+    ];
+    for &(bytes, error_index, label) in malformed_previous_cases {
+        pos.reset(bytes.len());
+        let err = Utf8::get_previous(&mut pos, bytes, 0).expect_err(label);
+        assert_eq!(UnicodeErrorKind::Malformed, err.kind(), "{label}");
+        assert_eq!(Some(error_index), pos.error_index(), "{label}");
+    }
+
+    for &(bytes, label) in &[
+        (&[0xc2, 0x20][..], "ASCII after bad two-byte leading"),
+        (&[0xe1, 0x80, 0x20][..], "ASCII after bad three-byte tail"),
+        (
+            &[0xf1, 0x80, 0x80, 0x20][..],
+            "ASCII after bad four-byte tail",
+        ),
+    ] {
+        pos.reset(bytes.len());
+        assert_eq!(
+            Some(' '),
+            Utf8::get_previous(&mut pos, bytes, 0).expect(label),
+            "{label}"
+        );
+        assert_eq!(bytes.len() - 1, pos.index(), "{label}");
+    }
 
     let mut tiny = [0; 2];
     let err = Utf8::put('中' as u32, 0, &mut tiny, 2).expect_err("not enough space");
@@ -166,6 +284,21 @@ fn test_utf8_reports_malformed_incomplete_and_overflow() {
 
     let err = Utf8::put(0xd800, 0, &mut tiny, 2).expect_err("surrogate scalar");
     assert_eq!(UnicodeErrorKind::Malformed, err.kind());
+
+    let err = Utf8::put(0x110000, 0, &mut tiny, 2).expect_err("out-of-range scalar");
+    assert_eq!(UnicodeErrorKind::Malformed, err.kind());
+
+    let mut one = [0; 1];
+    let err = Utf8::put(0x7f, 0, &mut one, 0).expect_err("ASCII overflow");
+    assert_eq!(UnicodeErrorKind::BufferOverflow, err.kind());
+    assert_eq!(0, one[0]);
+
+    let err = Utf8::put(0x80, 0, &mut one, 1).expect_err("two-byte overflow");
+    assert_eq!(UnicodeErrorKind::BufferOverflow, err.kind());
+
+    let mut three = [0; 3];
+    let err = Utf8::put(0x10000, 0, &mut three, 3).expect_err("four-byte overflow");
+    assert_eq!(UnicodeErrorKind::BufferOverflow, err.kind());
 
     pos.reset(1);
     let err = Utf8::set_to_start(&mut pos, &[0x41, 0x80], 0).expect_err("bad leading");

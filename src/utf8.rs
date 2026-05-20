@@ -16,6 +16,12 @@ use crate::{
 };
 
 /// Namespace for low-level UTF-8 helpers.
+///
+/// Decoding rejects every byte sequence that is not well-formed under
+/// [Unicode Standard, Table 3-7], including overlong encodings, surrogate
+/// code points, and code points above `U+10FFFF`.
+///
+/// [Unicode Standard, Table 3-7]: https://www.unicode.org/versions/latest/core-spec/chapter-3/#G7404
 pub enum Utf8 {}
 
 impl Utf8 {
@@ -412,10 +418,7 @@ impl Utf8 {
             }
             let p1 = index + 1;
             let c1 = buffer[p1];
-            if !Self::is_trailing(c1)
-                || (c0 == 0xe0 && c1 < 0xa0)
-                || (c0 == 0xed && c1 > 0x9f)
-            {
+            if !Self::is_trailing(c1) || (c0 == 0xe0 && c1 < 0xa0) || (c0 == 0xed && c1 > 0x9f) {
                 return Self::fail(pos, p1, UnicodeErrorKind::Malformed);
             }
             let p2 = index + 2;
@@ -423,9 +426,8 @@ impl Utf8 {
             if !Self::is_trailing(c2) {
                 return Self::fail(pos, p2, UnicodeErrorKind::Malformed);
             }
-            let code_point = (((c0 & 0x0f) as u32) << 12)
-                | (((c1 & 0x3f) as u32) << 6)
-                | ((c2 & 0x3f) as u32);
+            let code_point =
+                (((c0 & 0x0f) as u32) << 12) | (((c1 & 0x3f) as u32) << 6) | ((c2 & 0x3f) as u32);
             let ch = char::from_u32(code_point).expect("validated UTF-8 scalar value");
             pos.set_index(index + 3);
             return Ok(Some(ch));
@@ -436,10 +438,7 @@ impl Utf8 {
             }
             let p1 = index + 1;
             let c1 = buffer[p1];
-            if !Self::is_trailing(c1)
-                || (c0 == 0xf0 && c1 < 0x90)
-                || (c0 == 0xf4 && c1 > 0x8f)
-            {
+            if !Self::is_trailing(c1) || (c0 == 0xf0 && c1 < 0x90) || (c0 == 0xf4 && c1 > 0x8f) {
                 return Self::fail(pos, p1, UnicodeErrorKind::Malformed);
             }
             let p2 = index + 2;
