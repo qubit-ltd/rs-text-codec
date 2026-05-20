@@ -10,6 +10,7 @@
 use std::error::Error;
 use std::fmt;
 
+use crate::ParsingPosition;
 use crate::UnicodeErrorKind;
 
 /// Result type used by low-level Unicode cursor and encoder operations.
@@ -59,6 +60,32 @@ impl UnicodeError {
     #[must_use]
     pub const fn index(self) -> usize {
         self.index
+    }
+
+    /// Records an error on a parsing cursor and returns it.
+    ///
+    /// # Parameters
+    ///
+    /// - `pos`: The cursor on which the error state is recorded.
+    /// - `index`: The input or output index at which the error was detected.
+    /// - `kind`: The kind of Unicode error to record and return.
+    ///
+    /// # Returns
+    ///
+    /// Always returns `Err(UnicodeError)` carrying `kind` and `index`.
+    ///
+    /// # Errors
+    ///
+    /// This helper always returns an error and also stores the same error state in
+    /// `pos`.
+    #[inline]
+    pub(crate) fn fail<T>(
+        pos: &mut ParsingPosition,
+        index: usize,
+        kind: UnicodeErrorKind,
+    ) -> UnicodeResult<T> {
+        pos.set_error(index, kind);
+        Err(UnicodeError::new(kind, index))
     }
 }
 

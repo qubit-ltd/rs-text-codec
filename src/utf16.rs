@@ -222,14 +222,14 @@ impl Utf16 {
             return Ok(0);
         }
         if index == start_index {
-            return Self::fail(pos, index, UnicodeErrorKind::Incomplete);
+            return UnicodeError::fail(pos, index, UnicodeErrorKind::Incomplete);
         }
         let leading_index = index - 1;
         if Self::is_leading(buffer[leading_index]) {
             pos.set_index(leading_index);
             Ok(1)
         } else {
-            Self::fail(pos, leading_index, UnicodeErrorKind::Malformed)
+            UnicodeError::fail(pos, leading_index, UnicodeErrorKind::Malformed)
         }
     }
 
@@ -270,13 +270,13 @@ impl Utf16 {
         }
         let trailing_index = index + 1;
         if trailing_index >= end_index {
-            return Self::fail(pos, trailing_index, UnicodeErrorKind::Incomplete);
+            return UnicodeError::fail(pos, trailing_index, UnicodeErrorKind::Incomplete);
         }
         if Self::is_trailing(buffer[trailing_index]) {
             pos.set_index(trailing_index);
             Ok(1)
         } else {
-            Self::fail(pos, trailing_index, UnicodeErrorKind::Malformed)
+            UnicodeError::fail(pos, trailing_index, UnicodeErrorKind::Malformed)
         }
     }
 
@@ -353,16 +353,16 @@ impl Utf16 {
             pos.set_index(previous_index);
             Ok(1)
         } else if !Self::is_trailing(previous) {
-            Self::fail(pos, previous_index, UnicodeErrorKind::Malformed)
+            UnicodeError::fail(pos, previous_index, UnicodeErrorKind::Malformed)
         } else if previous_index == start_index {
-            Self::fail(pos, previous_index, UnicodeErrorKind::Incomplete)
+            UnicodeError::fail(pos, previous_index, UnicodeErrorKind::Incomplete)
         } else {
             let leading_index = previous_index - 1;
             if Self::is_leading(buffer[leading_index]) {
                 pos.set_index(leading_index);
                 Ok(2)
             } else {
-                Self::fail(pos, leading_index, UnicodeErrorKind::Malformed)
+                UnicodeError::fail(pos, leading_index, UnicodeErrorKind::Malformed)
             }
         }
     }
@@ -408,11 +408,11 @@ impl Utf16 {
             pos.set_index(index + 1);
             Ok(Some(ch))
         } else if !Self::is_leading(unit) {
-            Self::fail(pos, index, UnicodeErrorKind::Malformed)
+            UnicodeError::fail(pos, index, UnicodeErrorKind::Malformed)
         } else {
             let trailing_index = index + 1;
             if trailing_index >= end_index {
-                return Self::fail(pos, trailing_index, UnicodeErrorKind::Incomplete);
+                return UnicodeError::fail(pos, trailing_index, UnicodeErrorKind::Incomplete);
             }
             let trailing = buffer[trailing_index];
             if let Some(code_point) = Self::compose(unit, trailing) {
@@ -421,7 +421,7 @@ impl Utf16 {
                 pos.set_index(trailing_index + 1);
                 Ok(Some(ch))
             } else {
-                Self::fail(pos, trailing_index, UnicodeErrorKind::Malformed)
+                UnicodeError::fail(pos, trailing_index, UnicodeErrorKind::Malformed)
             }
         }
     }
@@ -546,31 +546,5 @@ impl Utf16 {
             let low = Self::decompose_low(code_point)?;
             Some(format!("\\u{high:04X}\\u{low:04X}"))
         }
-    }
-
-    /// Records an error on a cursor and returns it.
-    ///
-    /// # Parameters
-    ///
-    /// - `pos`: The cursor on which the error state is recorded.
-    /// - `index`: The input or output index at which the error was detected.
-    /// - `kind`: The kind of Unicode error to report.
-    ///
-    /// # Returns
-    ///
-    /// Always returns `Err(UnicodeError)` carrying `kind` and `index`.
-    ///
-    /// # Errors
-    ///
-    /// This helper always returns an error and also stores the same error state
-    /// in `pos`.
-    #[inline]
-    fn fail<T>(
-        pos: &mut ParsingPosition,
-        index: usize,
-        kind: UnicodeErrorKind,
-    ) -> UnicodeResult<T> {
-        pos.set_error(index, kind);
-        Err(UnicodeError::new(kind, index))
     }
 }
