@@ -14,6 +14,12 @@
 //! This crate provides small namespace enums that mirror the low-level text
 //! helpers used in Qubit's Java common library while keeping Rust's scalar
 //! value and slice-based APIs explicit.
+//!
+//! UTF-8 validation follows the well-formed byte sequence rules in
+//! [Unicode Standard, Table 3-7] and the equivalent [RFC 3629] syntax.
+//!
+//! [Unicode Standard, Table 3-7]: https://www.unicode.org/versions/latest/core-spec/chapter-3/#G7404
+//! [RFC 3629]: https://datatracker.ietf.org/doc/html/rfc3629
 
 mod ascii;
 mod ascii_folding;

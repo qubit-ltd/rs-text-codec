@@ -67,6 +67,14 @@ assert_eq!("\\uD83D\\uDE00", Utf16::escape(0x1f600).unwrap());
 
 ## Main Capabilities
 
+### Standards
+
+UTF-8 decoding follows the well-formed byte sequence rules in the
+[Unicode Standard, Table 3-7](https://www.unicode.org/versions/latest/core-spec/chapter-3/#G7404)
+and the equivalent [RFC 3629](https://datatracker.ietf.org/doc/html/rfc3629)
+syntax. In particular, malformed byte sequences include overlong encodings,
+UTF-8 encodings of surrogate code points, and sequences above `U+10FFFF`.
+
 ### Namespace Enums
 
 `qubit-unicode` exposes stateless namespace enums instead of heap-allocated helper objects:

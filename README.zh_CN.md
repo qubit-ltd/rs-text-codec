@@ -67,6 +67,13 @@ assert_eq!("\\uD83D\\uDE00", Utf16::escape(0x1f600).unwrap());
 
 ## 主要能力
 
+### 标准依据
+
+UTF-8 解码遵循 [Unicode Standard, Table 3-7](https://www.unicode.org/versions/latest/core-spec/chapter-3/#G7404)
+中的 well-formed byte sequence 规则，以及等价的
+[RFC 3629](https://datatracker.ietf.org/doc/html/rfc3629) 语法。具体来说，
+overlong encoding、代理码点的 UTF-8 编码，以及超过 `U+10FFFF` 的序列都会被视为 malformed。
+
 ### Namespace Enum
 
 `qubit-unicode` 暴露的是无状态 namespace enum，而不是需要分配的 helper object：
