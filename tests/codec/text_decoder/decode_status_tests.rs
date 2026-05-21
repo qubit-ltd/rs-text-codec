@@ -13,7 +13,7 @@ fn test_decode_status_variants_expose_payloads() {
         },
     );
     assert_eq!(
-        DecodeStatus::<char>::NeedMore {
+        DecodeStatus::NeedMore {
             required: 3,
             available: 1,
         },

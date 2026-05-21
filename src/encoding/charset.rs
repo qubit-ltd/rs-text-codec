@@ -36,8 +36,11 @@ use crate::ByteOrder;
 /// ```
 #[derive(Clone, Copy, Debug)]
 pub struct Charset {
+    /// Stable normalized identifier used for identity comparison.
     id: &'static str,
+    /// Human-friendly display name for logs and errors.
     name: &'static str,
+    /// Static alias list accepted in label matching.
     aliases: &'static [&'static str],
 }
 

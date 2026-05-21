@@ -22,9 +22,13 @@ use crate::{
 /// as invalid UTF-32 units, also carry that value through [`Self::value`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TextDecodeError {
+    /// Charset being decoded when this error was detected.
     charset: Charset,
+    /// Failure category describing the decoding error.
     kind: TextDecodeErrorKind,
+    /// Input unit index at which decoding failure occurred.
     index: usize,
+    /// Raw numeric value that caused the failure, if captured from input.
     value: Option<u32>,
 }
 

@@ -42,6 +42,7 @@ use super::helpers;
 /// ```
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Utf32ByteEncoder {
+    /// Byte order used when serializing UTF-32 units.
     byte_order: ByteOrder,
 }
 

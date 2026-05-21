@@ -85,7 +85,7 @@ impl TextDecoder<u32> for Utf32U32Codec {
         Utf32::MAX_UNITS_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u32]) -> TextDecodeResult<DecodeStatus<char>> {
+    fn decode_prefix(&self, input: &[u32]) -> TextDecodeResult<DecodeStatus> {
         helpers::decode_utf32_units_prefix(input)
     }
 }

@@ -21,7 +21,7 @@ use crate::{
 };
 
 /// Decodes the first UTF-8 character from a byte prefix.
-pub(super) fn decode_utf8_prefix(input: &[u8]) -> TextDecodeResult<DecodeStatus<char>> {
+pub(super) fn decode_utf8_prefix(input: &[u8]) -> TextDecodeResult<DecodeStatus> {
     if input.is_empty() {
         return Ok(DecodeStatus::NeedMore {
             required: 1,
@@ -78,7 +78,7 @@ pub(super) fn encode_utf8_char(ch: char, output: &mut [u8]) -> TextEncodeResult<
 }
 
 /// Decodes the first UTF-16 character from a `u16` prefix.
-pub(super) fn decode_utf16_units_prefix(input: &[u16]) -> TextDecodeResult<DecodeStatus<char>> {
+pub(super) fn decode_utf16_units_prefix(input: &[u16]) -> TextDecodeResult<DecodeStatus> {
     if input.is_empty() {
         return Ok(DecodeStatus::NeedMore {
             required: 1,
@@ -137,7 +137,7 @@ pub(super) fn encode_utf16_units_char(ch: char, output: &mut [u16]) -> TextEncod
 pub(super) fn decode_utf16_bytes_prefix(
     input: &[u8],
     byte_order: ByteOrder,
-) -> TextDecodeResult<DecodeStatus<char>> {
+) -> TextDecodeResult<DecodeStatus> {
     let charset = Charset::from_utf16_byte_order(byte_order);
     if input.len() < 2 {
         return Ok(DecodeStatus::NeedMore {
@@ -194,7 +194,7 @@ pub(super) fn encode_utf16_bytes_char(
 }
 
 /// Decodes the first UTF-32 character from a `u32` prefix.
-pub(super) fn decode_utf32_units_prefix(input: &[u32]) -> TextDecodeResult<DecodeStatus<char>> {
+pub(super) fn decode_utf32_units_prefix(input: &[u32]) -> TextDecodeResult<DecodeStatus> {
     if input.is_empty() {
         return Ok(DecodeStatus::NeedMore {
             required: 1,
@@ -227,7 +227,7 @@ pub(super) fn encode_utf32_units_char(ch: char, output: &mut [u32]) -> TextEncod
 pub(super) fn decode_utf32_bytes_prefix(
     input: &[u8],
     byte_order: ByteOrder,
-) -> TextDecodeResult<DecodeStatus<char>> {
+) -> TextDecodeResult<DecodeStatus> {
     let charset = Charset::from_utf32_byte_order(byte_order);
     if input.len() < 4 {
         return Ok(DecodeStatus::NeedMore {

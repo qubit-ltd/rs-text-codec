@@ -10,11 +10,11 @@
 /// Non-error status reported after inspecting a decoder input prefix.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[must_use]
-pub enum DecodeStatus<T> {
+pub enum DecodeStatus {
     /// A complete value was decoded from the prefix.
     Complete {
-        /// The decoded value.
-        value: T,
+        /// The decoded Unicode scalar value.
+        value: char,
 
         /// The number of input units consumed.
         consumed: usize,

@@ -55,7 +55,7 @@ impl TextDecoder<u8> for Utf8Decoder {
         Utf8::MAX_UNITS_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u8]) -> TextDecodeResult<DecodeStatus<char>> {
+    fn decode_prefix(&self, input: &[u8]) -> TextDecodeResult<DecodeStatus> {
         helpers::decode_utf8_prefix(input)
     }
 }

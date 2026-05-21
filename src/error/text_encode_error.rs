@@ -22,9 +22,13 @@ use crate::{
 /// character value expose that value through [`Self::value`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TextEncodeError {
+    /// Target charset of the operation that produced this error.
     charset: Charset,
+    /// Failure category describing why encoding could not proceed.
     kind: TextEncodeErrorKind,
+    /// Output unit index or input code point index where failure occurred.
     index: usize,
+    /// Raw code point/character value that triggered the failure, if known.
     value: Option<u32>,
 }
 

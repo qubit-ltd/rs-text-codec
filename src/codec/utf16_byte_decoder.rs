@@ -49,6 +49,7 @@ use super::helpers;
 /// ```
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Utf16ByteDecoder {
+    /// Byte order used when reading UTF-16 units.
     byte_order: ByteOrder,
 }
 
@@ -87,7 +88,7 @@ impl TextDecoder<u8> for Utf16ByteDecoder {
         Utf16::MAX_BYTES_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u8]) -> TextDecodeResult<DecodeStatus<char>> {
+    fn decode_prefix(&self, input: &[u8]) -> TextDecodeResult<DecodeStatus> {
         helpers::decode_utf16_bytes_prefix(input, self.byte_order)
     }
 }

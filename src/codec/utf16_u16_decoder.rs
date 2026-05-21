@@ -51,7 +51,7 @@ impl TextDecoder<u16> for Utf16U16Decoder {
         Utf16::MAX_UNITS_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u16]) -> TextDecodeResult<DecodeStatus<char>> {
+    fn decode_prefix(&self, input: &[u16]) -> TextDecodeResult<DecodeStatus> {
         helpers::decode_utf16_units_prefix(input)
     }
 }

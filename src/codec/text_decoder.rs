@@ -71,7 +71,7 @@ pub trait TextDecoder<T> {
     ///
     /// Returns [`TextDecodeError`] when the prefix is malformed or decodes to an
     /// invalid Unicode scalar value.
-    fn decode_prefix(&self, input: &[T]) -> TextDecodeResult<DecodeStatus<char>>;
+    fn decode_prefix(&self, input: &[T]) -> TextDecodeResult<DecodeStatus>;
 
     /// Decodes the next character from `input`, advancing `index` on success.
     ///
