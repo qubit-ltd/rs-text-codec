@@ -58,7 +58,7 @@ assert_eq!(2, Utf16::unit_len('😀'));
 assert_eq!(Some(UnicodeBom::Utf8), UnicodeBom::detect(&[0xEF, 0xBB, 0xBF]));
 
 let decoder = Utf8Decoder;
-let decoded = decoder.decode_prefix("中".as_bytes())?;
+let decoded = decoder.decode_prefix("中".as_bytes(), 0)?;
 assert_eq!(
     DecodeStatus::Complete {
         value: '中',
@@ -69,12 +69,12 @@ assert_eq!(
 
 let encoder = Utf8Encoder;
 let mut utf8 = [0; Utf8::MAX_BYTES_PER_CHAR];
-let written = encoder.encode_char('😀', &mut utf8)?;
+let written = encoder.encode_char('😀', &mut utf8, 0)?;
 assert_eq!("😀".as_bytes(), &utf8[..written]);
 
 let utf16 = Utf16ByteEncoder::new(ByteOrder::LittleEndian);
 let mut bytes = [0; Utf16::MAX_BYTES_PER_CHAR];
-let written = utf16.encode_char('😀', &mut bytes)?;
+let written = utf16.encode_char('😀', &mut bytes, 0)?;
 assert_eq!(&[0x3D, 0xD8, 0x00, 0xDE], &bytes[..written]);
 
 # Ok::<(), Box<dyn std::error::Error>>(())
