@@ -103,7 +103,7 @@ impl CharsetCodec<u8> for AsciiCodec {
         }
 
         let value = input[index];
-        if value > 0x7f {
+        if value > Ascii::MAX_BYTE {
             return Err(CharsetDecodeError::malformed_sequence(
                 Charset::ASCII,
                 index,
@@ -138,17 +138,15 @@ impl CharsetCodec<u8> for AsciiCodec {
             return Err(CharsetEncodeError::buffer_too_small(Charset::ASCII, index));
         }
 
-        let value = ch as u32;
-        if value > Ascii::MAX as u32 {
+        if ch > Ascii::MAX_CHAR {
             return Err(CharsetEncodeError::unmappable_character(
                 Charset::ASCII,
                 index,
-                value,
+                ch as u32,
             ));
         }
-
-        // Since we validated `value`, the cast is safe.
-        output[index] = value as u8;
+        // Since we validated `ch`, the cast is safe.
+        output[index] = ch as u8;
         Ok(1)
     }
 }
