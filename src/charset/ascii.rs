@@ -20,148 +20,292 @@ impl Ascii {
     pub const MAX_FOLDING: usize = 4;
 
     /// ASCII NUL.
-    pub const NULL: char = '\0';
+    pub const NULL_CHAR: char = '\0';
+
+    /// ASCII NUL as a byte.
+    pub const NULL_BYTE: u8 = Self::NULL_CHAR as u8;
 
     /// ASCII SOH.
-    pub const START_OF_HEADER: char = '\u{0001}';
+    pub const START_OF_HEADER_CHAR: char = '\u{0001}';
+
+    /// ASCII SOH as a byte.
+    pub const START_OF_HEADER_BYTE: u8 = Self::START_OF_HEADER_CHAR as u8;
 
     /// ASCII STX.
-    pub const START_OF_TEXT: char = '\u{0002}';
+    pub const START_OF_TEXT_CHAR: char = '\u{0002}';
+
+    /// ASCII STX as a byte.
+    pub const START_OF_TEXT_BYTE: u8 = Self::START_OF_TEXT_CHAR as u8;
 
     /// ASCII ETX.
-    pub const END_OF_TEXT: char = '\u{0003}';
+    pub const END_OF_TEXT_CHAR: char = '\u{0003}';
+
+    /// ASCII ETX as a byte.
+    pub const END_OF_TEXT_BYTE: u8 = Self::END_OF_TEXT_CHAR as u8;
 
     /// ASCII EOT.
-    pub const START_OF_TRANSMISSION: char = '\u{0004}';
+    pub const START_OF_TRANSMISSION_CHAR: char = '\u{0004}';
+
+    /// ASCII EOT as a byte.
+    pub const START_OF_TRANSMISSION_BYTE: u8 = Self::START_OF_TRANSMISSION_CHAR as u8;
 
     /// ASCII ENQ.
-    pub const ENQUIRY: char = '\u{0005}';
+    pub const ENQUIRY_CHAR: char = '\u{0005}';
+
+    /// ASCII ENQ as a byte.
+    pub const ENQUIRY_BYTE: u8 = Self::ENQUIRY_CHAR as u8;
 
     /// ASCII ACK.
-    pub const ACKNOWLEDGMENT: char = '\u{0006}';
+    pub const ACKNOWLEDGMENT_CHAR: char = '\u{0006}';
+
+    /// ASCII ACK as a byte.
+    pub const ACKNOWLEDGMENT_BYTE: u8 = Self::ACKNOWLEDGMENT_CHAR as u8;
 
     /// ASCII BEL.
-    pub const BELL: char = '\u{0007}';
+    pub const BELL_CHAR: char = '\u{0007}';
+
+    /// ASCII BEL as a byte.
+    pub const BELL_BYTE: u8 = Self::BELL_CHAR as u8;
 
     /// ASCII BS.
-    pub const BACKSPACE: char = '\u{0008}';
+    pub const BACKSPACE_CHAR: char = '\u{0008}';
+
+    /// ASCII BS as a byte.
+    pub const BACKSPACE_BYTE: u8 = Self::BACKSPACE_CHAR as u8;
 
     /// ASCII HT.
-    pub const HORIZONTAL_TAB: char = '\t';
+    pub const HORIZONTAL_TAB_CHAR: char = '\t';
+
+    /// ASCII HT as a byte.
+    pub const HORIZONTAL_TAB_BYTE: u8 = Self::HORIZONTAL_TAB_CHAR as u8;
 
     /// ASCII LF.
-    pub const LINE_FEED: char = '\n';
+    pub const LINE_FEED_CHAR: char = '\n';
+
+    /// ASCII LF as a byte.
+    pub const LINE_FEED_BYTE: u8 = Self::LINE_FEED_CHAR as u8;
 
     /// ASCII VT.
-    pub const VERTICAL_TAB: char = '\u{000b}';
+    pub const VERTICAL_TAB_CHAR: char = '\u{000b}';
+
+    /// ASCII VT as a byte.
+    pub const VERTICAL_TAB_BYTE: u8 = Self::VERTICAL_TAB_CHAR as u8;
 
     /// ASCII FF.
-    pub const FORM_FEED: char = '\u{000c}';
+    pub const FORM_FEED_CHAR: char = '\u{000c}';
+
+    /// ASCII FF as a byte.
+    pub const FORM_FEED_BYTE: u8 = Self::FORM_FEED_CHAR as u8;
 
     /// ASCII CR.
-    pub const CARRIAGE_RETURN: char = '\r';
+    pub const CARRIAGE_RETURN_CHAR: char = '\r';
+
+    /// ASCII CR as a byte.
+    pub const CARRIAGE_RETURN_BYTE: u8 = Self::CARRIAGE_RETURN_CHAR as u8;
 
     /// ASCII SO.
-    pub const SHIFT_OUT: char = '\u{000e}';
+    pub const SHIFT_OUT_CHAR: char = '\u{000e}';
+
+    /// ASCII SO as a byte.
+    pub const SHIFT_OUT_BYTE: u8 = Self::SHIFT_OUT_CHAR as u8;
 
     /// ASCII SI.
-    pub const SHIFT_IN: char = '\u{000f}';
+    pub const SHIFT_IN_CHAR: char = '\u{000f}';
+
+    /// ASCII SI as a byte.
+    pub const SHIFT_IN_BYTE: u8 = Self::SHIFT_IN_CHAR as u8;
 
     /// ASCII DLE.
-    pub const DATA_LINK_ESCAPE: char = '\u{0010}';
+    pub const DATA_LINK_ESCAPE_CHAR: char = '\u{0010}';
+
+    /// ASCII DLE as a byte.
+    pub const DATA_LINK_ESCAPE_BYTE: u8 = Self::DATA_LINK_ESCAPE_CHAR as u8;
 
     /// ASCII DC1.
-    pub const DEVICE_CONTROL_1: char = '\u{0011}';
+    pub const DEVICE_CONTROL_1_CHAR: char = '\u{0011}';
+
+    /// ASCII DC1 as a byte.
+    pub const DEVICE_CONTROL_1_BYTE: u8 = Self::DEVICE_CONTROL_1_CHAR as u8;
 
     /// ASCII DC2.
-    pub const DEVICE_CONTROL_2: char = '\u{0012}';
+    pub const DEVICE_CONTROL_2_CHAR: char = '\u{0012}';
+
+    /// ASCII DC2 as a byte.
+    pub const DEVICE_CONTROL_2_BYTE: u8 = Self::DEVICE_CONTROL_2_CHAR as u8;
 
     /// ASCII DC3.
-    pub const DEVICE_CONTROL_3: char = '\u{0013}';
+    pub const DEVICE_CONTROL_3_CHAR: char = '\u{0013}';
+
+    /// ASCII DC3 as a byte.
+    pub const DEVICE_CONTROL_3_BYTE: u8 = Self::DEVICE_CONTROL_3_CHAR as u8;
 
     /// ASCII DC4.
-    pub const DEVICE_CONTROL_4: char = '\u{0014}';
+    pub const DEVICE_CONTROL_4_CHAR: char = '\u{0014}';
+
+    /// ASCII DC4 as a byte.
+    pub const DEVICE_CONTROL_4_BYTE: u8 = Self::DEVICE_CONTROL_4_CHAR as u8;
 
     /// ASCII NAK.
-    pub const NEGATIVE_ACKNOWLEDGEMENT: char = '\u{0015}';
+    pub const NEGATIVE_ACKNOWLEDGEMENT_CHAR: char = '\u{0015}';
+
+    /// ASCII NAK as a byte.
+    pub const NEGATIVE_ACKNOWLEDGEMENT_BYTE: u8 = Self::NEGATIVE_ACKNOWLEDGEMENT_CHAR as u8;
 
     /// ASCII SYN.
-    pub const SYNCHRONOUS_IDLE: char = '\u{0016}';
+    pub const SYNCHRONOUS_IDLE_CHAR: char = '\u{0016}';
+
+    /// ASCII SYN as a byte.
+    pub const SYNCHRONOUS_IDLE_BYTE: u8 = Self::SYNCHRONOUS_IDLE_CHAR as u8;
 
     /// ASCII ETB.
-    pub const END_OF_TRANS_BLOCK: char = '\u{0017}';
+    pub const END_OF_TRANS_BLOCK_CHAR: char = '\u{0017}';
+
+    /// ASCII ETB as a byte.
+    pub const END_OF_TRANS_BLOCK_BYTE: u8 = Self::END_OF_TRANS_BLOCK_CHAR as u8;
 
     /// ASCII CAN.
-    pub const CANCEL: char = '\u{0018}';
+    pub const CANCEL_CHAR: char = '\u{0018}';
+
+    /// ASCII CAN as a byte.
+    pub const CANCEL_BYTE: u8 = Self::CANCEL_CHAR as u8;
 
     /// ASCII EM.
-    pub const END_OF_MEDIUM: char = '\u{0019}';
+    pub const END_OF_MEDIUM_CHAR: char = '\u{0019}';
+
+    /// ASCII EM as a byte.
+    pub const END_OF_MEDIUM_BYTE: u8 = Self::END_OF_MEDIUM_CHAR as u8;
 
     /// ASCII SUB.
-    pub const SUBSTITUTE: char = '\u{001a}';
+    pub const SUBSTITUTE_CHAR: char = '\u{001a}';
+
+    /// ASCII SUB as a byte.
+    pub const SUBSTITUTE_BYTE: u8 = Self::SUBSTITUTE_CHAR as u8;
 
     /// ASCII ESC.
-    pub const ESCAPE: char = '\u{001b}';
+    pub const ESCAPE_CHAR: char = '\u{001b}';
+
+    /// ASCII ESC as a byte.
+    pub const ESCAPE_BYTE: u8 = Self::ESCAPE_CHAR as u8;
 
     /// ASCII FS.
-    pub const FILE_SEPARATOR: char = '\u{001c}';
+    pub const FILE_SEPARATOR_CHAR: char = '\u{001c}';
+
+    /// ASCII FS as a byte.
+    pub const FILE_SEPARATOR_BYTE: u8 = Self::FILE_SEPARATOR_CHAR as u8;
 
     /// ASCII GS.
-    pub const GROUP_SEPARATOR: char = '\u{001d}';
+    pub const GROUP_SEPARATOR_CHAR: char = '\u{001d}';
+
+    /// ASCII GS as a byte.
+    pub const GROUP_SEPARATOR_BYTE: u8 = Self::GROUP_SEPARATOR_CHAR as u8;
 
     /// ASCII RS.
-    pub const RECORD_SEPARATOR: char = '\u{001e}';
+    pub const RECORD_SEPARATOR_CHAR: char = '\u{001e}';
+
+    /// ASCII RS as a byte.
+    pub const RECORD_SEPARATOR_BYTE: u8 = Self::RECORD_SEPARATOR_CHAR as u8;
 
     /// ASCII US.
-    pub const UNIT_SEPARATOR: char = '\u{001f}';
+    pub const UNIT_SEPARATOR_CHAR: char = '\u{001f}';
+
+    /// ASCII US as a byte.
+    pub const UNIT_SEPARATOR_BYTE: u8 = Self::UNIT_SEPARATOR_CHAR as u8;
 
     /// ASCII DEL.
-    pub const DELETE: char = '\u{007f}';
+    pub const DELETE_CHAR: char = '\u{007f}';
+
+    /// ASCII DEL as a byte.
+    pub const DELETE_BYTE: u8 = Self::DELETE_CHAR as u8;
 
     /// ASCII space.
-    pub const SPACE: char = ' ';
+    pub const SPACE_CHAR: char = ' ';
+
+    /// ASCII space as a byte.
+    pub const SPACE_BYTE: u8 = Self::SPACE_CHAR as u8;
 
     /// ASCII exclamation mark.
-    pub const EXCLAMATION: char = '!';
+    pub const EXCLAMATION_CHAR: char = '!';
+
+    /// ASCII exclamation mark as a byte.
+    pub const EXCLAMATION_BYTE: u8 = Self::EXCLAMATION_CHAR as u8;
 
     /// ASCII double quote.
-    pub const DOUBLE_QUOTE: char = '"';
+    pub const DOUBLE_QUOTE_CHAR: char = '"';
+
+    /// ASCII double quote as a byte.
+    pub const DOUBLE_QUOTE_BYTE: u8 = Self::DOUBLE_QUOTE_CHAR as u8;
 
     /// ASCII number sign.
-    pub const SHARP: char = '#';
+    pub const SHARP_CHAR: char = '#';
+
+    /// ASCII number sign as a byte.
+    pub const SHARP_BYTE: u8 = Self::SHARP_CHAR as u8;
 
     /// ASCII dollar sign.
-    pub const DOLLAR: char = '$';
+    pub const DOLLAR_CHAR: char = '$';
+
+    /// ASCII dollar sign as a byte.
+    pub const DOLLAR_BYTE: u8 = Self::DOLLAR_CHAR as u8;
 
     /// ASCII percent sign.
-    pub const PERCENT: char = '%';
+    pub const PERCENT_CHAR: char = '%';
+
+    /// ASCII percent sign as a byte.
+    pub const PERCENT_BYTE: u8 = Self::PERCENT_CHAR as u8;
 
     /// ASCII ampersand.
-    pub const AMPERSAND: char = '&';
+    pub const AMPERSAND_CHAR: char = '&';
+
+    /// ASCII ampersand as a byte.
+    pub const AMPERSAND_BYTE: u8 = Self::AMPERSAND_CHAR as u8;
 
     /// ASCII tab.
-    pub const TAB: char = '\t';
+    pub const TAB_CHAR: char = '\t';
+
+    /// ASCII tab as a byte.
+    pub const TAB_BYTE: u8 = Self::TAB_CHAR as u8;
 
     /// ASCII backslash.
-    pub const BACKSLASH: char = '\\';
+    pub const BACKSLASH_CHAR: char = '\\';
+
+    /// ASCII backslash as a byte.
+    pub const BACKSLASH_BYTE: u8 = Self::BACKSLASH_CHAR as u8;
 
     /// ASCII single quote.
-    pub const SINGLE_QUOTE: char = '\'';
+    pub const SINGLE_QUOTE_CHAR: char = '\'';
+
+    /// ASCII single quote as a byte.
+    pub const SINGLE_QUOTE_BYTE: u8 = Self::SINGLE_QUOTE_CHAR as u8;
 
     /// ASCII back quote.
-    pub const BACK_QUOTE: char = '`';
+    pub const BACK_QUOTE_CHAR: char = '`';
+
+    /// ASCII back quote as a byte.
+    pub const BACK_QUOTE_BYTE: u8 = Self::BACK_QUOTE_CHAR as u8;
 
     /// ASCII comma.
-    pub const COMMA: char = ',';
+    pub const COMMA_CHAR: char = ',';
+
+    /// ASCII comma as a byte.
+    pub const COMMA_BYTE: u8 = Self::COMMA_CHAR as u8;
 
     /// ASCII period.
-    pub const PERIOD: char = '.';
+    pub const PERIOD_CHAR: char = '.';
+
+    /// ASCII period as a byte.
+    pub const PERIOD_BYTE: u8 = Self::PERIOD_CHAR as u8;
 
     /// Minimum printable ASCII character.
-    pub const MIN_PRINTABLE: char = ' ';
+    pub const MIN_PRINTABLE_CHAR: char = ' ';
+
+    /// Minimum printable ASCII character as a byte.
+    pub const MIN_PRINTABLE_BYTE: u8 = Self::MIN_PRINTABLE_CHAR as u8;
 
     /// Maximum printable ASCII character.
-    pub const MAX_PRINTABLE: char = '~';
+    pub const MAX_PRINTABLE_CHAR: char = '~';
+
+    /// Maximum printable ASCII character as a byte.
+    pub const MAX_PRINTABLE_BYTE: u8 = Self::MAX_PRINTABLE_CHAR as u8;
 
     /// All printable ASCII characters.
     pub const PRINTABLE_CHARS: [char; 95] = [
@@ -173,12 +317,18 @@ impl Ascii {
         'z', '{', '|', '}', '~',
     ];
 
+    /// All printable ASCII characters as bytes.
+    pub const PRINTABLE_BYTES: [u8; 95] = *b" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+
     /// All ASCII letter characters.
     pub const LETTER_CHARS: [char; 52] = [
         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
         'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
         'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
     ];
+
+    /// All ASCII letter characters as bytes.
+    pub const LETTER_BYTES: [u8; 52] = *b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
     /// All ASCII letter and digit characters.
     pub const LETTER_DIGIT_CHARS: [char; 62] = [
@@ -187,6 +337,9 @@ impl Ascii {
         'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
         's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
     ];
+
+    /// All ASCII letter and digit characters as bytes.
+    pub const LETTER_DIGIT_BYTES: [u8; 62] = *b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
     /// ASCII digit characters.
     pub const DIGIT_CHARS: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -637,7 +790,7 @@ impl Ascii {
     #[inline]
     #[must_use]
     pub const fn is_printable_byte(ch: u8) -> bool {
-        ch >= Self::MIN_PRINTABLE as u8 && ch <= Self::MAX_PRINTABLE as u8
+        ch >= Self::MIN_PRINTABLE_BYTE && ch <= Self::MAX_PRINTABLE_BYTE
     }
 
     /// Tests whether a character is a printable ASCII character.
@@ -652,7 +805,7 @@ impl Ascii {
     #[inline]
     #[must_use]
     pub const fn is_printable_char(ch: char) -> bool {
-        ch >= Self::MIN_PRINTABLE && ch <= Self::MAX_PRINTABLE
+        ch >= Self::MIN_PRINTABLE_CHAR && ch <= Self::MAX_PRINTABLE_CHAR
     }
 
     /// Tests whether a raw code point is a printable ASCII character.
@@ -667,7 +820,7 @@ impl Ascii {
     #[inline]
     #[must_use]
     pub const fn is_printable_code_point(ch: u32) -> bool {
-        ch >= Self::MIN_PRINTABLE as u32 && ch <= Self::MAX_PRINTABLE as u32
+        ch >= Self::MIN_PRINTABLE_CHAR as u32 && ch <= Self::MAX_PRINTABLE_CHAR as u32
     }
 
     /// Tests whether a byte is an ASCII control character.
@@ -682,7 +835,7 @@ impl Ascii {
     #[inline]
     #[must_use]
     pub const fn is_control_byte(ch: u8) -> bool {
-        ch < Self::MIN_PRINTABLE as u8 || ch == Self::DELETE as u8
+        ch < Self::MIN_PRINTABLE_BYTE || ch == Self::DELETE_BYTE
     }
 
     /// Tests whether a character is an ASCII control character.
@@ -697,7 +850,7 @@ impl Ascii {
     #[inline]
     #[must_use]
     pub const fn is_control_char(ch: char) -> bool {
-        (ch < Self::MIN_PRINTABLE) || ch == Self::DELETE
+        (ch < Self::MIN_PRINTABLE_CHAR) || ch == Self::DELETE_CHAR
     }
 
     /// Tests whether a raw code point is an ASCII control character.
@@ -712,7 +865,7 @@ impl Ascii {
     #[inline]
     #[must_use]
     pub const fn is_control_code_point(ch: u32) -> bool {
-        (ch < Self::MIN_PRINTABLE as u32) || ch == Self::DELETE as u32
+        (ch < Self::MIN_PRINTABLE_CHAR as u32) || ch == Self::DELETE_CHAR as u32
     }
 
     /// Compares two bytes while ignoring ASCII case.
