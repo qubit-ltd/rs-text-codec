@@ -12,9 +12,7 @@
 pub use crate::{
     Ascii,
     ByteOrder,
-    DecodeResult,
-    Decoded,
-    NeedMore,
+    DecodeStatus,
     TextCodec,
     TextCodingError,
     TextCodingResult,

@@ -1,0 +1,64 @@
+/*******************************************************************************
+ *
+ *    Copyright (c) 2026 Haixing Hu.
+ *
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
+ *
+ ******************************************************************************/
+use crate::{
+    ByteOrder,
+    TextEncoder,
+    TextEncoding,
+    TextEncodingResult,
+    Utf16,
+};
+
+use super::helpers;
+
+/// Encoder for byte-serialized UTF-16 buffers.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct Utf16ByteEncoder {
+    byte_order: ByteOrder,
+}
+
+impl Utf16ByteEncoder {
+    /// Creates a byte-serialized UTF-16 encoder.
+    ///
+    /// # Parameters
+    ///
+    /// - `byte_order`: The byte order used to serialize UTF-16 units.
+    ///
+    /// # Returns
+    ///
+    /// Returns a UTF-16 byte encoder.
+    #[must_use]
+    pub const fn new(byte_order: ByteOrder) -> Self {
+        Self { byte_order }
+    }
+
+    /// Returns the configured byte order.
+    ///
+    /// # Returns
+    ///
+    /// Returns the byte order used by this encoder.
+    #[must_use]
+    pub const fn byte_order(self) -> ByteOrder {
+        self.byte_order
+    }
+}
+
+impl TextEncoder<u8> for Utf16ByteEncoder {
+    fn encoding(&self) -> TextEncoding {
+        TextEncoding::UTF_16
+    }
+
+    fn max_units_per_char(&self) -> usize {
+        Utf16::MAX_BYTES_PER_CHAR
+    }
+
+    fn encode_char(&self, ch: char, output: &mut [u8]) -> TextEncodingResult<usize> {
+        helpers::encode_utf16_bytes_char(ch, output, self.byte_order)
+    }
+}

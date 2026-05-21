@@ -17,24 +17,26 @@
 //! endings, and `std::io::Error` mapping while using the codecs from this crate
 //! for strict buffer-level encoding and decoding.
 
-mod ascii;
-mod ascii_folding;
-mod byte_order;
-mod codecs;
-pub mod prelude;
-mod text_coding_error;
-mod text_decoder;
-mod text_encoder;
-mod text_encoding;
-mod unicode;
-mod unicode_bom;
-mod utf16;
-mod utf32;
-mod utf8;
+mod charset;
+mod codec;
+mod encoding;
+mod error;
 
-pub use ascii::Ascii;
-pub use byte_order::ByteOrder;
-pub use codecs::{
+pub mod prelude;
+pub use charset::{
+    Ascii,
+    Unicode,
+    Utf8,
+    Utf16,
+    Utf32,
+};
+pub use codec::{
+    DecodeStatus,
+    TextCodec,
+    TextDecoder,
+    TextEncoder,
+};
+pub use codec::{
     Utf8Codec,
     Utf8Decoder,
     Utf8Encoder,
@@ -51,7 +53,12 @@ pub use codecs::{
     Utf32U32Decoder,
     Utf32U32Encoder,
 };
-pub use text_coding_error::{
+pub use encoding::{
+    ByteOrder,
+    TextEncoding,
+    UnicodeBom,
+};
+pub use error::{
     TextCodingError,
     TextCodingResult,
     TextDecodingError,
@@ -61,19 +68,3 @@ pub use text_coding_error::{
     TextEncodingErrorKind,
     TextEncodingResult,
 };
-pub use text_decoder::{
-    DecodeResult,
-    Decoded,
-    NeedMore,
-    TextDecoder,
-};
-pub use text_encoder::{
-    TextCodec,
-    TextEncoder,
-};
-pub use text_encoding::TextEncoding;
-pub use unicode::Unicode;
-pub use unicode_bom::UnicodeBom;
-pub use utf8::Utf8;
-pub use utf16::Utf16;
-pub use utf32::Utf32;
