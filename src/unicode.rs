@@ -7,319 +7,218 @@
  *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
-/// Namespace for raw Unicode code point helpers.
+/// Namespace for Unicode constants and encoding-independent code point helpers.
 pub enum Unicode {}
 
 impl Unicode {
+    /// Maximum valid Unicode code point.
+    pub const MAX_CODE_POINT: u32 = 0x10ffff;
+
+    /// Unicode replacement character.
+    pub const REPLACEMENT_CHARACTER: char = '\u{fffd}';
+
+    /// Unicode byte order mark character.
+    pub const BOM: char = '\u{feff}';
+
     /// Maximum valid ASCII code point.
     pub const ASCII_MAX: u32 = 0x7f;
 
     /// Maximum valid Latin-1 code point.
     pub const LATIN1_MAX: u32 = 0xff;
 
-    /// Maximum valid Unicode code point.
-    pub const UNICODE_MAX: u32 = 0x10ffff;
-
     /// Minimum supplementary code point.
     pub const SUPPLEMENTARY_MIN: u32 = 0x10000;
 
     /// Minimum high-surrogate code unit value.
-    pub const HIGH_SURROGATE_MIN: u16 = 0xd800;
+    pub const HIGH_SURROGATE_MIN: u32 = 0xd800;
 
     /// Maximum high-surrogate code unit value.
-    pub const HIGH_SURROGATE_MAX: u16 = 0xdbff;
+    pub const HIGH_SURROGATE_MAX: u32 = 0xdbff;
 
     /// Minimum low-surrogate code unit value.
-    pub const LOW_SURROGATE_MIN: u16 = 0xdc00;
+    pub const LOW_SURROGATE_MIN: u32 = 0xdc00;
 
     /// Maximum low-surrogate code unit value.
-    pub const LOW_SURROGATE_MAX: u16 = 0xdfff;
+    pub const LOW_SURROGATE_MAX: u32 = 0xdfff;
 
     /// Minimum surrogate code unit value.
-    pub const SURROGATE_MIN: u16 = Self::HIGH_SURROGATE_MIN;
+    pub const SURROGATE_MIN: u32 = Self::HIGH_SURROGATE_MIN;
 
     /// Maximum surrogate code unit value.
-    pub const SURROGATE_MAX: u16 = Self::LOW_SURROGATE_MAX;
+    pub const SURROGATE_MAX: u32 = Self::LOW_SURROGATE_MAX;
 
-    /// Number of bits shifted when composing or decomposing surrogate pairs.
-    pub const HIGH_SURROGATE_SHIFT: u32 = 10;
-
-    /// Mask used to decompose the low surrogate payload.
-    pub const SURROGATE_DECOMPOSE_MASK: u32 = (1 << Self::HIGH_SURROGATE_SHIFT) - 1;
-
-    /// Number of bits shifted to obtain a Unicode plane.
-    pub const PLANE_SHIFT: u32 = 16;
-
-    /// Tests whether a raw value is a valid ASCII code point.
+    /// Tests whether `value` is in the Unicode code point range.
     ///
     /// # Parameters
     ///
-    /// - `code_point`: The raw code point value to test.
+    /// - `value`: The raw code point value to test.
     ///
     /// # Returns
     ///
-    /// Returns `true` if `code_point` is in `0x00..=0x7F`.
-    #[inline]
+    /// Returns `true` for values in `0x0000..=0x10FFFF`, including surrogate code points.
     #[must_use]
-    pub const fn is_valid_ascii(code_point: i32) -> bool {
-        code_point >= 0 && (code_point as u32) <= Self::ASCII_MAX
+    pub const fn is_code_point(value: u32) -> bool {
+        value <= Self::MAX_CODE_POINT
     }
 
-    /// Tests whether a raw value is a valid Latin-1 code point.
+    /// Tests whether `value` is a valid Unicode scalar value.
     ///
     /// # Parameters
     ///
-    /// - `code_point`: The raw code point value to test.
+    /// - `value`: The raw code point value to test.
     ///
     /// # Returns
     ///
-    /// Returns `true` if `code_point` is in `0x00..=0xFF`.
-    #[inline]
+    /// Returns `true` for Unicode code points excluding UTF-16 surrogate values.
     #[must_use]
-    pub const fn is_valid_latin1(code_point: i32) -> bool {
-        code_point >= 0 && (code_point as u32) <= Self::LATIN1_MAX
+    pub const fn is_scalar_value(value: u32) -> bool {
+        Self::is_code_point(value) && !Self::is_surrogate(value)
     }
 
-    /// Tests whether a raw value is in the Unicode code point range.
+    /// Tests whether `value` is a UTF-16 surrogate code point.
     ///
     /// # Parameters
     ///
-    /// - `code_point`: The raw code point value to test.
+    /// - `value`: The raw code point or code-unit value to test.
     ///
     /// # Returns
     ///
-    /// Returns `true` if `code_point` is in `0x0000..=0x10FFFF`.
-    /// This range check does not exclude UTF-16 surrogate code points.
-    #[inline]
+    /// Returns `true` if `value` is in `0xD800..=0xDFFF`.
     #[must_use]
-    pub const fn is_valid_unicode(code_point: i32) -> bool {
-        code_point >= 0 && (code_point as u32) <= Self::UNICODE_MAX
+    pub const fn is_surrogate(value: u32) -> bool {
+        value >= Self::SURROGATE_MIN && value <= Self::SURROGATE_MAX
     }
 
-    /// Tests whether a raw value is in the basic multilingual plane.
+    /// Tests whether `value` is a high surrogate.
     ///
     /// # Parameters
     ///
-    /// - `code_point`: The raw code point value to test.
+    /// - `value`: The raw code point or code-unit value to test.
     ///
     /// # Returns
     ///
-    /// Returns `true` if `code_point` is in `0x0000..=0xFFFF`.
-    #[inline]
+    /// Returns `true` if `value` is in `0xD800..=0xDBFF`.
     #[must_use]
-    pub const fn is_bmp(code_point: i32) -> bool {
-        code_point >= 0 && (code_point as u32) < Self::SUPPLEMENTARY_MIN
+    pub const fn is_high_surrogate(value: u32) -> bool {
+        value >= Self::HIGH_SURROGATE_MIN && value <= Self::HIGH_SURROGATE_MAX
     }
 
-    /// Tests whether a value is a supplementary Unicode code point.
+    /// Tests whether `value` is a low surrogate.
     ///
     /// # Parameters
     ///
-    /// - `code_point`: The code point value to test.
+    /// - `value`: The raw code point or code-unit value to test.
     ///
     /// # Returns
     ///
-    /// Returns `true` if `code_point` is in `0x10000..=0x10FFFF`.
-    #[inline]
+    /// Returns `true` if `value` is in `0xDC00..=0xDFFF`.
     #[must_use]
-    pub const fn is_supplementary(code_point: u32) -> bool {
-        code_point >= Self::SUPPLEMENTARY_MIN && code_point <= Self::UNICODE_MAX
+    pub const fn is_low_surrogate(value: u32) -> bool {
+        value >= Self::LOW_SURROGATE_MIN && value <= Self::LOW_SURROGATE_MAX
     }
 
-    /// Tests whether a raw value is a UTF-16 high surrogate.
+    /// Tests whether `value` is in the basic multilingual plane.
     ///
     /// # Parameters
     ///
-    /// - `code_point`: The raw code point or code-unit value to test.
+    /// - `value`: The raw code point value to test.
     ///
     /// # Returns
     ///
-    /// Returns `true` if `code_point` is in `0xD800..=0xDBFF`.
-    #[inline]
+    /// Returns `true` if `value` is in `0x0000..=0xFFFF`.
     #[must_use]
-    pub const fn is_high_surrogate(code_point: i32) -> bool {
-        code_point >= Self::HIGH_SURROGATE_MIN as i32
-            && code_point <= Self::HIGH_SURROGATE_MAX as i32
+    pub const fn is_bmp(value: u32) -> bool {
+        value < Self::SUPPLEMENTARY_MIN
     }
 
-    /// Tests whether a raw value is a UTF-16 low surrogate.
+    /// Tests whether `value` is a supplementary Unicode code point.
     ///
     /// # Parameters
     ///
-    /// - `code_point`: The raw code point or code-unit value to test.
+    /// - `value`: The raw code point value to test.
     ///
     /// # Returns
     ///
-    /// Returns `true` if `code_point` is in `0xDC00..=0xDFFF`.
-    #[inline]
+    /// Returns `true` if `value` is in `0x10000..=0x10FFFF`.
     #[must_use]
-    pub const fn is_low_surrogate(code_point: i32) -> bool {
-        code_point >= Self::LOW_SURROGATE_MIN as i32 && code_point <= Self::LOW_SURROGATE_MAX as i32
+    pub const fn is_supplementary(value: u32) -> bool {
+        value >= Self::SUPPLEMENTARY_MIN && value <= Self::MAX_CODE_POINT
     }
 
-    /// Tests whether a raw value is any UTF-16 surrogate.
+    /// Tests whether `value` is an ASCII code point.
     ///
     /// # Parameters
     ///
-    /// - `code_point`: The raw code point or code-unit value to test.
+    /// - `value`: The raw code point value to test.
     ///
     /// # Returns
     ///
-    /// Returns `true` if `code_point` is in `0xD800..=0xDFFF`.
-    #[inline]
+    /// Returns `true` if `value` is in `0x00..=0x7F`.
     #[must_use]
-    pub const fn is_surrogate(code_point: i32) -> bool {
-        code_point >= Self::SURROGATE_MIN as i32 && code_point <= Self::SURROGATE_MAX as i32
+    pub const fn is_ascii(value: u32) -> bool {
+        value <= Self::ASCII_MAX
     }
 
-    /// Tests whether two UTF-16 code units form a surrogate pair.
+    /// Tests whether `value` is a Unicode noncharacter.
     ///
     /// # Parameters
     ///
-    /// - `high`: The candidate high surrogate.
-    /// - `low`: The candidate low surrogate.
+    /// - `value`: The raw code point value to test.
     ///
     /// # Returns
     ///
-    /// Returns `true` if `high` is a high surrogate and `low` is a low surrogate.
-    #[inline]
+    /// Returns `true` for Unicode noncharacters such as `U+FDD0..=U+FDEF` and
+    /// code points ending in `FFFE` or `FFFF`.
     #[must_use]
-    pub const fn is_surrogate_pair(high: u16, low: u16) -> bool {
-        Self::is_high_surrogate(high as i32) && Self::is_low_surrogate(low as i32)
+    pub const fn is_noncharacter(value: u32) -> bool {
+        Self::is_code_point(value)
+            && ((value >= 0xfdd0 && value <= 0xfdef) || (value & 0xfffe) == 0xfffe)
     }
 
-    /// Composes a UTF-16 surrogate pair into a Unicode code point.
+    /// Tests whether `value` is a Unicode C0, C1, or DEL control code point.
     ///
     /// # Parameters
     ///
-    /// - `high`: The high surrogate code unit.
-    /// - `low`: The low surrogate code unit.
+    /// - `value`: The raw code point value to test.
     ///
     /// # Returns
     ///
-    /// Returns `Some(code_point)` if `high` and `low` form a valid surrogate
-    /// pair. Returns `None` if either code unit is not in the required surrogate
-    /// range.
-    #[inline]
+    /// Returns `true` for `U+0000..=U+001F`, `U+007F`, and `U+0080..=U+009F`.
     #[must_use]
-    pub const fn compose_surrogate_pair(high: u16, low: u16) -> Option<u32> {
-        if Self::is_surrogate_pair(high, low) {
-            let high_payload = (high as u32) - (Self::HIGH_SURROGATE_MIN as u32);
-            let low_payload = (low as u32) - (Self::LOW_SURROGATE_MIN as u32);
-            Some(
-                (high_payload << Self::HIGH_SURROGATE_SHIFT)
-                    + low_payload
-                    + Self::SUPPLEMENTARY_MIN,
-            )
+    pub const fn is_control(value: u32) -> bool {
+        value <= 0x1f || (value >= 0x7f && value <= 0x9f)
+    }
+
+    /// Returns the Unicode plane containing `value`.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: The raw code point value to inspect.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(plane)` for Unicode code points, or `None` for values above
+    /// `U+10FFFF`.
+    #[must_use]
+    pub const fn plane(value: u32) -> Option<u32> {
+        if Self::is_code_point(value) {
+            Some(value >> 16)
         } else {
             None
         }
     }
 
-    /// Decomposes a supplementary code point into its high surrogate.
+    /// Converts a raw code point into a Rust `char`.
     ///
     /// # Parameters
     ///
-    /// - `code_point`: The supplementary code point to decompose.
+    /// - `value`: The raw code point value to convert.
     ///
     /// # Returns
     ///
-    /// Returns `Some(high_surrogate)` if `code_point` is in
-    /// `0x10000..=0x10FFFF`. Returns `None` for BMP and out-of-range values.
-    #[inline]
+    /// Returns `Some(char)` for valid Unicode scalar values and `None` otherwise.
     #[must_use]
-    pub const fn decompose_high_surrogate(code_point: u32) -> Option<u16> {
-        if Self::is_supplementary(code_point) {
-            Some(
-                (((code_point - Self::SUPPLEMENTARY_MIN) >> Self::HIGH_SURROGATE_SHIFT)
-                    + Self::HIGH_SURROGATE_MIN as u32) as u16,
-            )
-        } else {
-            None
-        }
-    }
-
-    /// Decomposes a supplementary code point into its low surrogate.
-    ///
-    /// # Parameters
-    ///
-    /// - `code_point`: The supplementary code point to decompose.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Some(low_surrogate)` if `code_point` is in
-    /// `0x10000..=0x10FFFF`. Returns `None` for BMP and out-of-range values.
-    #[inline]
-    #[must_use]
-    pub const fn decompose_low_surrogate(code_point: u32) -> Option<u16> {
-        if Self::is_supplementary(code_point) {
-            Some(
-                (((code_point - Self::SUPPLEMENTARY_MIN) & Self::SURROGATE_DECOMPOSE_MASK)
-                    + Self::LOW_SURROGATE_MIN as u32) as u16,
-            )
-        } else {
-            None
-        }
-    }
-
-    /// Returns the Unicode plane containing a code point.
-    ///
-    /// # Parameters
-    ///
-    /// - `code_point`: The code point whose plane is requested.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Some(plane)` for values in `0x0000..=0x10FFFF`. Returns `None`
-    /// for values above the Unicode maximum.
-    #[inline]
-    #[must_use]
-    pub const fn plane(code_point: u32) -> Option<u32> {
-        if code_point <= Self::UNICODE_MAX {
-            Some(code_point >> Self::PLANE_SHIFT)
-        } else {
-            None
-        }
-    }
-
-    /// Escapes a code point as Java-style Unicode escape text.
-    ///
-    /// # Parameters
-    ///
-    /// - `code_point`: The code point to escape.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Some(String)` containing `\uXXXX` for BMP values and
-    /// `\uXXXXX` or longer uppercase hexadecimal escape text for supplementary
-    /// values. Returns `None` if `code_point` is above `0x10FFFF`.
-    #[must_use]
-    pub fn escape_java(code_point: u32) -> Option<String> {
-        if code_point > Self::UNICODE_MAX {
-            None
-        } else if code_point > 0xffff {
-            Some(format!("\\u{code_point:X}"))
-        } else {
-            Some(format!("\\u{code_point:04X}"))
-        }
-    }
-
-    /// Escapes a code point as a Rust-style Unicode escape text.
-    ///
-    /// # Parameters
-    ///
-    /// - `code_point`: The code point to escape.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Some(String)` containing `\u{...}` for valid Unicode scalar
-    /// values. Returns `None` if `code_point` is above `0x10FFFF`.
-    #[must_use]
-    pub fn escape_rust(code_point: u32) -> Option<String> {
-        if code_point > Self::UNICODE_MAX {
-            None
-        } else {
-            Some(format!("\\u{{{code_point:X}}}"))
-        }
+    pub fn to_char(value: u32) -> Option<char> {
+        char::from_u32(value)
     }
 }

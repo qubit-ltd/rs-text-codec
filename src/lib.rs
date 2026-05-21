@@ -9,35 +9,71 @@
  ******************************************************************************/
 //! # Qubit Unicode
 //!
-//! Low-level Unicode, UTF-8, UTF-16, and ASCII utilities for Rust.
+//! Low-level Unicode constants, character classification helpers, and text codec
+//! primitives for UTF-8, UTF-16, UTF-32, and ASCII-oriented code.
 //!
-//! This crate provides small namespace enums that mirror the low-level text
-//! helpers used in Qubit's Java common library while keeping Rust's scalar
-//! value and slice-based APIs explicit.
-//!
-//! UTF-8 validation follows the well-formed byte sequence rules in
-//! [Unicode Standard, Table 3-7] and the equivalent [RFC 3629] syntax.
-//!
-//! [Unicode Standard, Table 3-7]: https://www.unicode.org/versions/latest/core-spec/chapter-3/#G7404
-//! [RFC 3629]: https://datatracker.ietf.org/doc/html/rfc3629
+//! This crate deliberately stays below `std::io::Read` and `std::io::Write`.
+//! Concrete text I/O adapters are expected to own buffering, EOF handling, line
+//! endings, and `std::io::Error` mapping while using the codecs from this crate
+//! for strict buffer-level encoding and decoding.
 
 mod ascii;
 mod ascii_folding;
-mod parsing_position;
+mod byte_order;
+mod codecs;
 pub mod prelude;
+mod text_coding_error;
+mod text_decoder;
+mod text_encoder;
+mod text_encoding;
 mod unicode;
-mod unicode_error;
-mod unicode_error_kind;
+mod unicode_bom;
 mod utf16;
+mod utf32;
 mod utf8;
 
 pub use ascii::Ascii;
-pub use parsing_position::ParsingPosition;
-pub use unicode::Unicode;
-pub use unicode_error::{
-    UnicodeError,
-    UnicodeResult,
+pub use byte_order::ByteOrder;
+pub use codecs::{
+    Utf8Codec,
+    Utf8Decoder,
+    Utf8Encoder,
+    Utf16ByteCodec,
+    Utf16ByteDecoder,
+    Utf16ByteEncoder,
+    Utf16U16Codec,
+    Utf16U16Decoder,
+    Utf16U16Encoder,
+    Utf32ByteCodec,
+    Utf32ByteDecoder,
+    Utf32ByteEncoder,
+    Utf32U32Codec,
+    Utf32U32Decoder,
+    Utf32U32Encoder,
 };
-pub use unicode_error_kind::UnicodeErrorKind;
+pub use text_coding_error::{
+    TextCodingError,
+    TextCodingResult,
+    TextDecodingError,
+    TextDecodingErrorKind,
+    TextDecodingResult,
+    TextEncodingError,
+    TextEncodingErrorKind,
+    TextEncodingResult,
+};
+pub use text_decoder::{
+    DecodeResult,
+    Decoded,
+    NeedMore,
+    TextDecoder,
+};
+pub use text_encoder::{
+    TextCodec,
+    TextEncoder,
+};
+pub use text_encoding::TextEncoding;
+pub use unicode::Unicode;
+pub use unicode_bom::UnicodeBom;
 pub use utf8::Utf8;
 pub use utf16::Utf16;
+pub use utf32::Utf32;
