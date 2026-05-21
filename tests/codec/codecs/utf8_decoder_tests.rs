@@ -25,7 +25,7 @@ fn test_utf8_decoder_decodes_prefix_and_next() {
             value: 'A',
             consumed: 1,
         },
-        decoder.decode_prefix(bytes).expect("ASCII prefix"),
+        decoder.decode_prefix(bytes, 0).expect("ASCII prefix"),
     );
 
     let mut index = 0;
@@ -57,12 +57,12 @@ fn test_utf8_decoder_reports_need_more_and_malformed_sequences() {
             available: 2,
         },
         decoder
-            .decode_prefix(&[0xe4, 0xb8])
+            .decode_prefix(&[0xe4, 0xb8], 0)
             .expect("valid prefix needs more"),
     );
 
     let error = decoder
-        .decode_prefix(&[0xe4, b'A', 0x80])
+        .decode_prefix(&[0xe4, b'A', 0x80], 0)
         .expect_err("bad continuation must fail");
     assert_eq!(TextDecodeErrorKind::MalformedSequence, error.kind());
     assert_eq!(1, error.index());
@@ -88,7 +88,7 @@ fn test_utf8_decoder_rejects_malformed_partial_prefixes() {
         (&[0xf4, 0x90][..], 1),
     ] {
         let error = decoder
-            .decode_prefix(bytes)
+            .decode_prefix(bytes, 0)
             .expect_err("malformed partial UTF-8 prefix must fail");
         assert_eq!(TextDecodeErrorKind::MalformedSequence, error.kind());
         assert_eq!(index, error.index());
@@ -118,7 +118,7 @@ fn test_utf8_decoder_covers_well_formed_and_malformed_boundaries() {
         &[0xf4, 0x8f, 0xbf, 0xbf],
     ] {
         assert!(matches!(
-            decoder.decode_prefix(bytes).expect("well-formed UTF-8"),
+            decoder.decode_prefix(bytes, 0).expect("well-formed UTF-8"),
             DecodeStatus::Complete { .. },
         ));
     }
@@ -135,7 +135,7 @@ fn test_utf8_decoder_covers_well_formed_and_malformed_boundaries() {
         (&[0xf1, 0x80, 0x80, 0x20], 3),
     ] {
         let error = decoder
-            .decode_prefix(bytes)
+            .decode_prefix(bytes, 0)
             .expect_err("malformed UTF-8 must fail");
         assert_eq!(TextDecodeErrorKind::MalformedSequence, error.kind());
         assert_eq!(index, error.index());

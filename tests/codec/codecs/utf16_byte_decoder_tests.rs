@@ -27,7 +27,7 @@ fn test_utf16_byte_decoder_decodes_bytes() {
             consumed: 4,
         },
         decoder
-            .decode_prefix(&[0x3d, 0xd8, 0x00, 0xde])
+            .decode_prefix(&[0x3d, 0xd8, 0x00, 0xde], 0)
             .expect("decode UTF-16LE emoji"),
     );
 }
@@ -39,7 +39,7 @@ fn test_utf16_byte_decoder_reports_need_more_and_malformed_bytes() {
     for bytes in [[][..].as_ref(), &[0x3d][..], &[0x3d, 0xd8, 0x00][..]] {
         assert!(matches!(
             decoder
-                .decode_prefix(bytes)
+                .decode_prefix(bytes, 0)
                 .expect("UTF-16 byte prefix needs more"),
             DecodeStatus::NeedMore { .. },
         ));
@@ -47,7 +47,7 @@ fn test_utf16_byte_decoder_reports_need_more_and_malformed_bytes() {
 
     for bytes in [&[0x00, 0xde][..], &[0x3d, 0xd8, 0x41, 0x00]] {
         let error = decoder
-            .decode_prefix(bytes)
+            .decode_prefix(bytes, 0)
             .expect_err("malformed UTF-16 bytes");
         assert_eq!(TextDecodeErrorKind::MalformedSequence, error.kind());
     }

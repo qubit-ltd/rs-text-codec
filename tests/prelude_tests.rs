@@ -35,7 +35,7 @@ fn test_prelude_reexports_common_types() {
     assert_eq!(Charset::UTF_8, TextDecoder::<u8>::charset(&utf8));
     assert_eq!(Charset::UTF_8, TextEncoder::<u8>::charset(&utf8));
     assert!(matches!(
-        utf8.decode_prefix("A".as_bytes()).expect("UTF-8 prefix"),
+        utf8.decode_prefix("A".as_bytes(), 0).expect("UTF-8 prefix"),
         DecodeStatus::Complete { .. },
     ));
 

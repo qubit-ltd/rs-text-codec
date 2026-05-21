@@ -35,7 +35,7 @@ fn test_utf16_byte_codec_encodes_and_decodes_bytes() {
     assert_eq!(
         4,
         codec
-            .encode_char('😀', &mut output)
+            .encode_char('😀', &mut output, 0)
             .expect("encode pair bytes")
     );
     assert_eq!(
@@ -43,6 +43,6 @@ fn test_utf16_byte_codec_encodes_and_decodes_bytes() {
             value: '😀',
             consumed: 4,
         },
-        codec.decode_prefix(&output).expect("decode pair bytes"),
+        codec.decode_prefix(&output, 0).expect("decode pair bytes"),
     );
 }

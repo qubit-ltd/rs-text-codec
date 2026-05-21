@@ -35,7 +35,7 @@ fn test_utf32_byte_codec_encodes_and_decodes_bytes() {
     assert_eq!(
         4,
         codec
-            .encode_char('A', &mut output)
+            .encode_char('A', &mut output, 0)
             .expect("encode UTF-32BE A")
     );
     assert_eq!(
@@ -43,6 +43,6 @@ fn test_utf32_byte_codec_encodes_and_decodes_bytes() {
             value: 'A',
             consumed: 4,
         },
-        codec.decode_prefix(&output).expect("decode UTF-32BE A"),
+        codec.decode_prefix(&output, 0).expect("decode UTF-32BE A"),
     );
 }

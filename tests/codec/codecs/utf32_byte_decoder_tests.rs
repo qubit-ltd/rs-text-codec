@@ -27,7 +27,7 @@ fn test_utf32_byte_decoder_decodes_bytes() {
             consumed: 4,
         },
         decoder
-            .decode_prefix(&[0x00, 0x01, 0xf6, 0x00])
+            .decode_prefix(&[0x00, 0x01, 0xf6, 0x00], 0)
             .expect("UTF-32BE bytes"),
     );
 }
@@ -38,14 +38,14 @@ fn test_utf32_byte_decoder_reports_need_more_and_invalid_bytes() {
 
     assert!(matches!(
         decoder
-            .decode_prefix(&[0, 0, 0])
+            .decode_prefix(&[0, 0, 0], 0)
             .expect("UTF-32 bytes need more"),
         DecodeStatus::NeedMore { .. },
     ));
 
     for bytes in [[0x00, 0x00, 0xd8, 0x00], [0x00, 0x11, 0x00, 0x00]] {
         let error = decoder
-            .decode_prefix(&bytes)
+            .decode_prefix(&bytes, 0)
             .expect_err("invalid UTF-32 bytes");
         assert_eq!(TextDecodeErrorKind::InvalidCodePoint, error.kind());
         assert_eq!(Some(ByteOrder::BigEndian.read_u32(&bytes)), error.value());

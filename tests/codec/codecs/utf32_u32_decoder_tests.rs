@@ -41,13 +41,15 @@ fn test_utf32_u32_decoder_reports_need_more_and_invalid_units() {
     let decoder = Utf32U32Decoder;
 
     assert!(matches!(
-        decoder.decode_prefix(&[]).expect("UTF-32 unit needs more"),
+        decoder
+            .decode_prefix(&[], 0)
+            .expect("UTF-32 unit needs more"),
         DecodeStatus::NeedMore { .. },
     ));
 
     for unit in [0xd800, 0x110000] {
         let error = decoder
-            .decode_prefix(&[unit])
+            .decode_prefix(&[unit], 0)
             .expect_err("invalid UTF-32 unit");
         assert_eq!(TextDecodeErrorKind::InvalidCodePoint, error.kind());
         assert_eq!(0, error.index());

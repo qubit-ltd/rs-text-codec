@@ -46,18 +46,18 @@ fn test_utf16_u16_decoder_reports_need_more_and_malformed_pairs() {
             available: 1,
         },
         decoder
-            .decode_prefix(&[0xd83d])
+            .decode_prefix(&[0xd83d], 0)
             .expect("high surrogate needs low surrogate"),
     );
 
     let error = decoder
-        .decode_prefix(&[0xde00])
+        .decode_prefix(&[0xde00], 0)
         .expect_err("low surrogate cannot start a scalar");
     assert_eq!(TextDecodeErrorKind::MalformedSequence, error.kind());
     assert_eq!(0, error.index());
 
     let error = decoder
-        .decode_prefix(&[0xd83d, 0x0041])
+        .decode_prefix(&[0xd83d, 0x0041], 0)
         .expect_err("bad surrogate pair must fail");
     assert_eq!(TextDecodeErrorKind::MalformedSequence, error.kind());
     assert_eq!(1, error.index());

@@ -20,14 +20,14 @@ fn test_utf32_u32_encoder_encodes_units_and_reports_small_buffers() {
     let mut output = [0_u32; Utf32::MAX_UNITS_PER_CHAR];
 
     let written = encoder
-        .encode_char('😀', &mut output)
+        .encode_char('😀', &mut output, 0)
         .expect("encode emoji");
     assert_eq!(1, written);
     assert_eq!('😀' as u32, output[0]);
 
     let mut empty = [];
     let error = encoder
-        .encode_char('A', &mut empty)
+        .encode_char('A', &mut empty, 0)
         .expect_err("empty UTF-32 output must fail");
     assert_eq!(TextEncodeErrorKind::BufferTooSmall, error.kind());
     assert_eq!(0, error.index());

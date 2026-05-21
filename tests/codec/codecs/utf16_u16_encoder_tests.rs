@@ -20,14 +20,14 @@ fn test_utf16_u16_encoder_encodes_units() {
     let mut output = [0_u16; Utf16::MAX_UNITS_PER_CHAR];
 
     let written = encoder
-        .encode_char('😀', &mut output)
+        .encode_char('😀', &mut output, 0)
         .expect("encode emoji");
     assert_eq!(2, written);
     assert_eq!([0xd83d, 0xde00], output);
 
     let mut small = [0_u16; 1];
     let error = encoder
-        .encode_char('😀', &mut small)
+        .encode_char('😀', &mut small, 0)
         .expect_err("UTF-16 unit encoder must reject a too-small output buffer");
     assert_eq!(TextEncodeErrorKind::BufferTooSmall, error.kind());
     assert_eq!(1, error.index());

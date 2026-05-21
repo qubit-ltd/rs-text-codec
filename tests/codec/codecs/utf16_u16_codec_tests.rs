@@ -32,17 +32,19 @@ fn test_utf16_u16_codec_encodes_and_decodes_pairs() {
 
     assert_eq!(
         2,
-        codec.encode_char('😀', &mut output).expect("encode pair")
+        codec
+            .encode_char('😀', &mut output, 0)
+            .expect("encode pair")
     );
     assert_eq!(
         DecodeStatus::Complete {
             value: '😀',
             consumed: 2,
         },
-        codec.decode_prefix(&output).expect("decode pair"),
+        codec.decode_prefix(&output, 0).expect("decode pair"),
     );
     assert!(matches!(
-        codec.decode_prefix(&[]).expect("empty input needs more"),
+        codec.decode_prefix(&[], 0).expect("empty input needs more"),
         DecodeStatus::NeedMore { .. },
     ));
 }

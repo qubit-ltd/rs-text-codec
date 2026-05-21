@@ -23,14 +23,14 @@ fn test_utf32_byte_encoder_encodes_bytes() {
     let mut output = [0_u8; Utf32::MAX_BYTES_PER_CHAR];
 
     let written = encoder
-        .encode_char('😀', &mut output)
+        .encode_char('😀', &mut output, 0)
         .expect("encode UTF-32BE emoji");
     assert_eq!(4, written);
     assert_eq!(bytes, output);
 
     let mut small = [0_u8; 3];
     let error = encoder
-        .encode_char('A', &mut small)
+        .encode_char('A', &mut small, 0)
         .expect_err("UTF-32 byte encoder must reject a too-small output buffer");
     assert_eq!(TextEncodeErrorKind::BufferTooSmall, error.kind());
     assert_eq!(3, error.index());

@@ -33,7 +33,7 @@ fn test_utf32_u32_codec_encodes_and_decodes_units() {
     assert_eq!(
         1,
         codec
-            .encode_char('😀', &mut output)
+            .encode_char('😀', &mut output, 0)
             .expect("encode unit codec")
     );
     assert_eq!(
@@ -41,6 +41,6 @@ fn test_utf32_u32_codec_encodes_and_decodes_units() {
             value: '😀',
             consumed: 1,
         },
-        codec.decode_prefix(&output).expect("decode unit codec"),
+        codec.decode_prefix(&output, 0).expect("decode unit codec"),
     );
 }

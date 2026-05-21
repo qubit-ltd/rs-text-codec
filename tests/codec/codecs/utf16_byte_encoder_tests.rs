@@ -23,14 +23,14 @@ fn test_utf16_byte_encoder_encodes_bytes_and_reports_small_buffers() {
     let mut output = [0_u8; Utf16::MAX_BYTES_PER_CHAR];
 
     let written = encoder
-        .encode_char('😀', &mut output)
+        .encode_char('😀', &mut output, 0)
         .expect("encode UTF-16LE emoji");
     assert_eq!(4, written);
     assert_eq!(bytes, output);
 
     let mut small = [0_u8; 2];
     let error = encoder
-        .encode_char('😀', &mut small)
+        .encode_char('😀', &mut small, 0)
         .expect_err("small byte buffer must fail");
     assert_eq!(TextEncodeErrorKind::BufferTooSmall, error.kind());
     assert_eq!(2, error.index());
