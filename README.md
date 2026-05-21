@@ -146,11 +146,11 @@ Byte codecs carry a `ByteOrder` value. Use `UnicodeBom::detect`, `Utf16::detect_
 | `DecodeStatus::Complete { value, consumed }` | A complete scalar value and consumed unit count |
 | `DecodeStatus::NeedMore { required, available }` | The prefix is valid so far but more units are required |
 | `TextDecodeError` | Charset, decoding error kind, input unit index, and optional raw value |
-| `TextEncodeError` | Charset, encoding error kind, output/input index, and optional raw value |
+| `TextEncodeError` | Charset, encoding error kind, operation index, and optional raw value |
 
 `DecodeStatus::NeedMore` is not an error. A streaming text reader should read more input when possible, and convert it at EOF into an incomplete-sequence error or an appropriate `std::io::Error`.
 
-Errors tied to a raw value, such as an invalid UTF-32 unit or invalid raw code point passed to `encode_code_point`, expose that value through `value()`.
+Errors tied to a raw value, such as an invalid UTF-32 unit or invalid raw code point passed to `encode_code_point`, expose that value through `value()`. Encoding errors report the caller-supplied output index, or the first missing output unit index when the buffer is too small after a valid start index.
 
 ### ASCII Helpers
 

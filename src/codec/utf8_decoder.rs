@@ -79,7 +79,6 @@ impl TextDecoder<u8> for Utf8Decoder {
     /// # Errors
     ///
     /// * `TextDecodeError::malformed_sequence` for malformed UTF-8.
-    /// * `TextDecodeError::invalid_code_point` for non-scalar code points.
     fn decode_prefix(&self, input: &[u8], index: usize) -> TextDecodeResult<DecodeStatus> {
         utf8::decode_prefix(input, index)
     }

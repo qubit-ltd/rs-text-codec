@@ -17,16 +17,18 @@ use crate::{
 
 /// Error reported by a text encoder.
 ///
-/// The error always carries the target charset, error kind, and output or
-/// input index associated with the failure. Errors tied to a raw code point or
-/// character value expose that value through [`Self::value`].
+/// The error always carries the target charset, error kind, and operation
+/// index associated with the failure. For buffer errors this is either the
+/// caller-supplied output index or the first missing output unit index. Errors
+/// tied to a raw code point or character value expose that value through
+/// [`Self::value`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TextEncodeError {
     /// Target charset of the operation that produced this error.
     charset: Charset,
     /// Failure category describing why encoding could not proceed.
     kind: TextEncodeErrorKind,
-    /// Output unit index or input code point index where failure occurred.
+    /// Operation index associated with the failure.
     index: usize,
     /// Raw code point/character value that triggered the failure, if known.
     value: Option<u32>,
@@ -42,7 +44,7 @@ impl TextEncodeError {
     ///
     /// - `charset`: The target charset.
     /// - `kind`: The failure category.
-    /// - `index`: The output unit index or input code point index associated with the failure.
+    /// - `index`: The operation index associated with the failure.
     ///
     /// # Returns
     ///
@@ -63,7 +65,7 @@ impl TextEncodeError {
     ///
     /// - `charset`: The target charset.
     /// - `kind`: The failure category.
-    /// - `index`: The output unit index or input code point index associated with the failure.
+    /// - `index`: The operation index associated with the failure.
     /// - `value`: The raw code point or character value associated with the failure.
     ///
     /// # Returns
@@ -89,7 +91,7 @@ impl TextEncodeError {
     /// # Parameters
     ///
     /// - `charset`: The target charset.
-    /// - `index`: The input code point index associated with the failure.
+    /// - `index`: The caller-supplied operation index associated with the failure.
     /// - `value`: The invalid raw code point value.
     ///
     /// # Returns
@@ -105,7 +107,7 @@ impl TextEncodeError {
     /// # Parameters
     ///
     /// - `charset`: The target charset.
-    /// - `index`: The input character index associated with the failure.
+    /// - `index`: The caller-supplied operation index associated with the failure.
     /// - `value`: The unmappable raw character value.
     ///
     /// # Returns
@@ -126,7 +128,7 @@ impl TextEncodeError {
     /// # Parameters
     ///
     /// - `charset`: The target charset.
-    /// - `index`: The output unit index or available output length associated with the failure.
+    /// - `index`: The caller-supplied output index or first missing output unit index.
     ///
     /// # Returns
     ///
@@ -156,7 +158,7 @@ impl TextEncodeError {
         self.kind
     }
 
-    /// Returns the output unit index or input code point index associated with this error.
+    /// Returns the operation index associated with this error.
     ///
     /// # Returns
     ///

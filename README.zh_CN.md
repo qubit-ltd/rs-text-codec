@@ -141,11 +141,11 @@ UTF-8 解码遵循 [Unicode Standard 表 3-7](https://www.unicode.org/versions/l
 | `DecodeStatus::Complete { value, consumed }` | 已解码出完整标量值和消耗的单元数 |
 | `DecodeStatus::NeedMore { required, available }` | 当前前缀目前合法，但还需要更多单元 |
 | `TextDecodeError` | 包含 charset、解码错误种类、输入单元下标和可选原始值 |
-| `TextEncodeError` | 包含 charset、编码错误种类、输出/输入下标和可选原始值 |
+| `TextEncodeError` | 包含 charset、编码错误种类、操作下标和可选原始值 |
 
 `DecodeStatus::NeedMore` 不是错误。流式文本读取器应在可能时继续读取更多输入，并在输入结束时把它转成不完整序列错误或合适的 `std::io::Error`。
 
-与原始值相关的错误，例如非法 UTF-32 单元，或传给 `encode_code_point` 的非法原始码点，可通过 `value()` 取回该值。
+与原始值相关的错误，例如非法 UTF-32 单元，或传给 `encode_code_point` 的非法原始码点，可通过 `value()` 取回该值。编码错误会报告调用方传入的输出下标；如果起始下标有效但缓冲区剩余空间不足，则报告第一个缺失的输出单元下标。
 
 ### ASCII 辅助工具
 

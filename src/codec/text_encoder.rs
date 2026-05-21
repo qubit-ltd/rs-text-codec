@@ -83,9 +83,9 @@ pub trait TextEncoder<T> {
     ///
     /// # Errors
     ///
-    /// Returns [`crate::TextEncodeErrorKind::InvalidCodePoint`] when
-    /// `code_point` is not a Unicode scalar value. Returns any error reported by
-    /// [`Self::encode_char`] for valid scalar values.
+    /// Returns [`crate::TextEncodeErrorKind::InvalidCodePoint`] at the
+    /// caller-supplied `index` when `code_point` is not a Unicode scalar value.
+    /// Returns any error reported by [`Self::encode_char`] for valid scalar values.
     fn encode_code_point(
         &self,
         code_point: u32,

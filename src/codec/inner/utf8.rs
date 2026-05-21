@@ -40,8 +40,6 @@ use crate::{
 ///
 /// * `TextDecodeError::malformed_sequence` when the first byte or continuation bytes
 ///   are invalid for UTF-8.
-/// * `TextDecodeError::invalid_code_point` when the decoded scalar value is not a valid
-///   Unicode scalar.
 pub(crate) fn decode_prefix(input: &[u8], index: usize) -> TextDecodeResult<DecodeStatus> {
     if index > input.len() {
         return Err(TextDecodeError::malformed_sequence(Charset::UTF_8, index));
@@ -73,17 +71,12 @@ pub(crate) fn decode_prefix(input: &[u8], index: usize) -> TextDecodeResult<Deco
         4 => decode_four(input, index)?,
         _ => unreachable!("UTF-8 sequence length is limited to four bytes"),
     };
-    match Unicode::to_char(code_point) {
-        Some(ch) => Ok(DecodeStatus::Complete {
-            value: ch,
-            consumed: length,
-        }),
-        None => Err(TextDecodeError::invalid_code_point(
-            Charset::UTF_8,
-            index,
-            code_point,
-        )),
-    }
+    let ch =
+        Unicode::to_char(code_point).expect("well-formed UTF-8 sequence decodes to a scalar value");
+    Ok(DecodeStatus::Complete {
+        value: ch,
+        consumed: length,
+    })
 }
 
 /// Encodes one Unicode scalar value into UTF-8 at `index` in `output`.
@@ -198,7 +191,7 @@ pub(crate) fn is_valid_second_byte(first: u8, second: u8) -> bool {
         0xe1..=0xec | 0xee..=0xef => Utf8::is_continuation_byte(second),
         0xf0 => (0x90..=0xbf).contains(&second),
         0xf1..=0xf3 => Utf8::is_continuation_byte(second),
-        0xf4 => (0x80..=0xbf).contains(&second),
+        0xf4 => (0x80..=0x8f).contains(&second),
         _ => false,
     }
 }
