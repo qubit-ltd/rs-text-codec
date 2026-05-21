@@ -35,7 +35,7 @@ use super::helpers;
 ///
 /// let encoder = Utf16ByteEncoder::new(ByteOrder::LittleEndian);
 /// let mut output = [0_u8; Utf16::MAX_BYTES_PER_CHAR];
-/// let written = encoder.encode_char('😀', &mut output).expect("buffer fits");
+/// let written = encoder.encode_char('😀', &mut output, 0).expect("buffer fits");
 ///
 /// assert_eq!(4, written);
 /// assert_eq!([0x3d, 0xd8, 0x00, 0xde], output);
@@ -81,7 +81,7 @@ impl TextEncoder<u8> for Utf16ByteEncoder {
         Utf16::MAX_BYTES_PER_CHAR
     }
 
-    fn encode_char(&self, ch: char, output: &mut [u8]) -> TextEncodeResult<usize> {
-        helpers::encode_utf16_bytes_char(ch, output, self.byte_order)
+    fn encode_char(&self, ch: char, output: &mut [u8], index: usize) -> TextEncodeResult<usize> {
+        helpers::encode_utf16_bytes_char(ch, output, self.byte_order, index)
     }
 }

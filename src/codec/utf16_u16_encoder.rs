@@ -29,7 +29,7 @@ use super::helpers;
 ///
 /// let encoder = Utf16U16Encoder;
 /// let mut output = [0_u16; Utf16::MAX_UNITS_PER_CHAR];
-/// let written = encoder.encode_char('😀', &mut output).expect("buffer fits");
+/// let written = encoder.encode_char('😀', &mut output, 0).expect("buffer fits");
 ///
 /// assert_eq!(2, written);
 /// assert_eq!([0xd83d, 0xde00], output);
@@ -46,7 +46,7 @@ impl TextEncoder<u16> for Utf16U16Encoder {
         Utf16::MAX_UNITS_PER_CHAR
     }
 
-    fn encode_char(&self, ch: char, output: &mut [u16]) -> TextEncodeResult<usize> {
-        helpers::encode_utf16_units_char(ch, output)
+    fn encode_char(&self, ch: char, output: &mut [u16], index: usize) -> TextEncodeResult<usize> {
+        helpers::encode_utf16_units_char(ch, output, index)
     }
 }

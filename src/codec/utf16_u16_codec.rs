@@ -42,13 +42,13 @@ use super::helpers;
 /// assert_eq!(Utf16::MAX_UNITS_PER_CHAR, codec.max_units_per_char());
 ///
 /// let mut output = [0_u16; Utf16::MAX_UNITS_PER_CHAR];
-/// let written = codec.encode_char('😀', &mut output).expect("buffer fits");
+/// let written = codec.encode_char('😀', &mut output, 0).expect("buffer fits");
 /// assert_eq!(
 ///     DecodeStatus::Complete {
 ///         value: '😀',
 ///         consumed: written,
 ///     },
-///     codec.decode_prefix(&output[..written]).expect("valid UTF-16"),
+///     codec.decode_prefix(&output[..written], 0).expect("valid UTF-16"),
 /// );
 /// ```
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
@@ -85,8 +85,8 @@ impl TextDecoder<u16> for Utf16U16Codec {
         Utf16::MAX_UNITS_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u16]) -> TextDecodeResult<DecodeStatus> {
-        helpers::decode_utf16_units_prefix(input)
+    fn decode_prefix(&self, input: &[u16], index: usize) -> TextDecodeResult<DecodeStatus> {
+        helpers::decode_utf16_units_prefix(input, index)
     }
 }
 
@@ -99,7 +99,7 @@ impl TextEncoder<u16> for Utf16U16Codec {
         Utf16::MAX_UNITS_PER_CHAR
     }
 
-    fn encode_char(&self, ch: char, output: &mut [u16]) -> TextEncodeResult<usize> {
-        helpers::encode_utf16_units_char(ch, output)
+    fn encode_char(&self, ch: char, output: &mut [u16], index: usize) -> TextEncodeResult<usize> {
+        helpers::encode_utf16_units_char(ch, output, index)
     }
 }

@@ -36,7 +36,7 @@ use crate::{
 ///         value: 'A',
 ///         consumed: 1,
 ///     },
-///     decoder.decode_prefix(b"A").expect("valid UTF-8"),
+///     decoder.decode_prefix(b"A", 0).expect("valid UTF-8"),
 /// );
 /// ```
 pub trait TextDecoder<T> {
@@ -56,11 +56,12 @@ pub trait TextDecoder<T> {
     #[must_use]
     fn max_units_per_char(&self) -> usize;
 
-    /// Decodes the first Unicode scalar value from `input`.
+    /// Decodes the first Unicode scalar value from `input` starting at `index`.
     ///
     /// # Parameters
     ///
-    /// - `input`: Encoded units beginning at the character boundary to decode.
+    /// - `input`: Encoded units containing the character boundary.
+    /// - `index`: Unit index of the next character in `input`.
     ///
     /// # Returns
     ///
@@ -71,7 +72,7 @@ pub trait TextDecoder<T> {
     ///
     /// Returns [`TextDecodeError`] when the prefix is malformed or decodes to an
     /// invalid Unicode scalar value.
-    fn decode_prefix(&self, input: &[T]) -> TextDecodeResult<DecodeStatus>;
+    fn decode_prefix(&self, input: &[T], index: usize) -> TextDecodeResult<DecodeStatus>;
 
     /// Decodes the next character from `input`, advancing `index` on success.
     ///
@@ -96,10 +97,7 @@ pub trait TextDecoder<T> {
         if *index == input.len() {
             return Ok(None);
         }
-        match self
-            .decode_prefix(&input[*index..])
-            .map_err(|error| error.offset_by(*index))?
-        {
+        match self.decode_prefix(input, *index)? {
             DecodeStatus::Complete { value, consumed } => {
                 *index += consumed;
                 Ok(Some(value))

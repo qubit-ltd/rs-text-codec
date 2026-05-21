@@ -43,13 +43,13 @@ use super::helpers;
 /// assert_eq!(Utf8::MAX_UNITS_PER_CHAR, codec.max_units_per_char());
 ///
 /// let mut output = [0_u8; Utf8::MAX_BYTES_PER_CHAR];
-/// let written = codec.encode_char('é', &mut output).expect("buffer fits");
+/// let written = codec.encode_char('é', &mut output, 0).expect("buffer fits");
 /// assert_eq!(
 ///     DecodeStatus::Complete {
 ///         value: 'é',
 ///         consumed: written,
 ///     },
-///     codec.decode_prefix(&output[..written]).expect("valid UTF-8"),
+///     codec.decode_prefix(&output[..written], 0).expect("valid UTF-8"),
 /// );
 /// ```
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
@@ -86,8 +86,8 @@ impl TextDecoder<u8> for Utf8Codec {
         Utf8::MAX_UNITS_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u8]) -> TextDecodeResult<DecodeStatus> {
-        helpers::decode_utf8_prefix(input)
+    fn decode_prefix(&self, input: &[u8], index: usize) -> TextDecodeResult<DecodeStatus> {
+        helpers::decode_utf8_prefix(input, index)
     }
 }
 
@@ -100,7 +100,7 @@ impl TextEncoder<u8> for Utf8Codec {
         Utf8::MAX_UNITS_PER_CHAR
     }
 
-    fn encode_char(&self, ch: char, output: &mut [u8]) -> TextEncodeResult<usize> {
-        helpers::encode_utf8_char(ch, output)
+    fn encode_char(&self, ch: char, output: &mut [u8], index: usize) -> TextEncodeResult<usize> {
+        helpers::encode_utf8_char(ch, output, index)
     }
 }

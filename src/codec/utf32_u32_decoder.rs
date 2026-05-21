@@ -29,7 +29,9 @@ use super::helpers;
 /// };
 ///
 /// let decoder = Utf32U32Decoder;
-/// let decoded = decoder.decode_prefix(&['中' as u32]).expect("valid UTF-32");
+/// let decoded = decoder
+///     .decode_prefix(&['中' as u32], 0)
+///     .expect("valid UTF-32");
 ///
 /// assert_eq!(
 ///     DecodeStatus::Complete {
@@ -51,7 +53,7 @@ impl TextDecoder<u32> for Utf32U32Decoder {
         Utf32::MAX_UNITS_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u32]) -> TextDecodeResult<DecodeStatus> {
-        helpers::decode_utf32_units_prefix(input)
+    fn decode_prefix(&self, input: &[u32], index: usize) -> TextDecodeResult<DecodeStatus> {
+        helpers::decode_utf32_units_prefix(input, index)
     }
 }

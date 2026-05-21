@@ -35,7 +35,7 @@ use super::helpers;
 ///
 /// let encoder = Utf32ByteEncoder::new(ByteOrder::BigEndian);
 /// let mut output = [0_u8; Utf32::MAX_BYTES_PER_CHAR];
-/// let written = encoder.encode_char('😀', &mut output).expect("buffer fits");
+/// let written = encoder.encode_char('😀', &mut output, 0).expect("buffer fits");
 ///
 /// assert_eq!(4, written);
 /// assert_eq!([0x00, 0x01, 0xf6, 0x00], output);
@@ -81,7 +81,7 @@ impl TextEncoder<u8> for Utf32ByteEncoder {
         Utf32::MAX_BYTES_PER_CHAR
     }
 
-    fn encode_char(&self, ch: char, output: &mut [u8]) -> TextEncodeResult<usize> {
-        helpers::encode_utf32_bytes_char(ch, output, self.byte_order)
+    fn encode_char(&self, ch: char, output: &mut [u8], index: usize) -> TextEncodeResult<usize> {
+        helpers::encode_utf32_bytes_char(ch, output, self.byte_order, index)
     }
 }

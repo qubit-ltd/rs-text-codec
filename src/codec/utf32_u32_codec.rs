@@ -42,13 +42,13 @@ use super::helpers;
 /// assert_eq!(Utf32::MAX_UNITS_PER_CHAR, codec.max_units_per_char());
 ///
 /// let mut output = [0_u32; Utf32::MAX_UNITS_PER_CHAR];
-/// let written = codec.encode_char('中', &mut output).expect("buffer fits");
+/// let written = codec.encode_char('中', &mut output, 0).expect("buffer fits");
 /// assert_eq!(
 ///     DecodeStatus::Complete {
 ///         value: '中',
 ///         consumed: written,
 ///     },
-///     codec.decode_prefix(&output[..written]).expect("valid UTF-32"),
+///     codec.decode_prefix(&output[..written], 0).expect("valid UTF-32"),
 /// );
 /// ```
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
@@ -85,8 +85,8 @@ impl TextDecoder<u32> for Utf32U32Codec {
         Utf32::MAX_UNITS_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u32]) -> TextDecodeResult<DecodeStatus> {
-        helpers::decode_utf32_units_prefix(input)
+    fn decode_prefix(&self, input: &[u32], index: usize) -> TextDecodeResult<DecodeStatus> {
+        helpers::decode_utf32_units_prefix(input, index)
     }
 }
 
@@ -99,7 +99,7 @@ impl TextEncoder<u32> for Utf32U32Codec {
         Utf32::MAX_UNITS_PER_CHAR
     }
 
-    fn encode_char(&self, ch: char, output: &mut [u32]) -> TextEncodeResult<usize> {
-        helpers::encode_utf32_units_char(ch, output)
+    fn encode_char(&self, ch: char, output: &mut [u32], index: usize) -> TextEncodeResult<usize> {
+        helpers::encode_utf32_units_char(ch, output, index)
     }
 }

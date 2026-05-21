@@ -29,7 +29,7 @@ use super::helpers;
 ///
 /// let encoder = Utf8Encoder;
 /// let mut output = [0_u8; Utf8::MAX_BYTES_PER_CHAR];
-/// let written = encoder.encode_char('😀', &mut output).expect("buffer fits");
+/// let written = encoder.encode_char('😀', &mut output, 0).expect("buffer fits");
 ///
 /// assert_eq!("😀".as_bytes(), &output[..written]);
 /// ```
@@ -45,7 +45,7 @@ impl TextEncoder<u8> for Utf8Encoder {
         Utf8::MAX_UNITS_PER_CHAR
     }
 
-    fn encode_char(&self, ch: char, output: &mut [u8]) -> TextEncodeResult<usize> {
-        helpers::encode_utf8_char(ch, output)
+    fn encode_char(&self, ch: char, output: &mut [u8], index: usize) -> TextEncodeResult<usize> {
+        helpers::encode_utf8_char(ch, output, index)
     }
 }

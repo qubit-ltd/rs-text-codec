@@ -44,13 +44,13 @@ use super::helpers;
 /// assert_eq!(Utf32::MAX_BYTES_PER_CHAR, codec.max_units_per_char());
 ///
 /// let mut output = [0_u8; Utf32::MAX_BYTES_PER_CHAR];
-/// let written = codec.encode_char('中', &mut output).expect("buffer fits");
+/// let written = codec.encode_char('中', &mut output, 0).expect("buffer fits");
 /// assert_eq!(
 ///     DecodeStatus::Complete {
 ///         value: '中',
 ///         consumed: written,
 ///     },
-///     codec.decode_prefix(&output[..written]).expect("valid UTF-32BE"),
+///     codec.decode_prefix(&output[..written], 0).expect("valid UTF-32BE"),
 /// );
 /// ```
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -115,8 +115,8 @@ impl TextDecoder<u8> for Utf32ByteCodec {
         Utf32::MAX_BYTES_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u8]) -> TextDecodeResult<DecodeStatus> {
-        helpers::decode_utf32_bytes_prefix(input, self.byte_order)
+    fn decode_prefix(&self, input: &[u8], index: usize) -> TextDecodeResult<DecodeStatus> {
+        helpers::decode_utf32_bytes_prefix(input, index, self.byte_order)
     }
 }
 
@@ -129,7 +129,7 @@ impl TextEncoder<u8> for Utf32ByteCodec {
         Utf32::MAX_BYTES_PER_CHAR
     }
 
-    fn encode_char(&self, ch: char, output: &mut [u8]) -> TextEncodeResult<usize> {
-        helpers::encode_utf32_bytes_char(ch, output, self.byte_order)
+    fn encode_char(&self, ch: char, output: &mut [u8], index: usize) -> TextEncodeResult<usize> {
+        helpers::encode_utf32_bytes_char(ch, output, self.byte_order, index)
     }
 }

@@ -33,7 +33,7 @@ use super::helpers;
 /// };
 ///
 /// let decoder = Utf8Decoder;
-/// let decoded = decoder.decode_prefix("中".as_bytes()).expect("valid UTF-8");
+/// let decoded = decoder.decode_prefix("中".as_bytes(), 0).expect("valid UTF-8");
 ///
 /// assert_eq!(
 ///     DecodeStatus::Complete {
@@ -55,7 +55,7 @@ impl TextDecoder<u8> for Utf8Decoder {
         Utf8::MAX_UNITS_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u8]) -> TextDecodeResult<DecodeStatus> {
-        helpers::decode_utf8_prefix(input)
+    fn decode_prefix(&self, input: &[u8], index: usize) -> TextDecodeResult<DecodeStatus> {
+        helpers::decode_utf8_prefix(input, index)
     }
 }

@@ -29,7 +29,7 @@ use super::helpers;
 ///
 /// let encoder = Utf32U32Encoder;
 /// let mut output = [0_u32; Utf32::MAX_UNITS_PER_CHAR];
-/// let written = encoder.encode_char('中', &mut output).expect("buffer fits");
+/// let written = encoder.encode_char('中', &mut output, 0).expect("buffer fits");
 ///
 /// assert_eq!(1, written);
 /// assert_eq!('中' as u32, output[0]);
@@ -46,7 +46,7 @@ impl TextEncoder<u32> for Utf32U32Encoder {
         Utf32::MAX_UNITS_PER_CHAR
     }
 
-    fn encode_char(&self, ch: char, output: &mut [u32]) -> TextEncodeResult<usize> {
-        helpers::encode_utf32_units_char(ch, output)
+    fn encode_char(&self, ch: char, output: &mut [u32], index: usize) -> TextEncodeResult<usize> {
+        helpers::encode_utf32_units_char(ch, output, index)
     }
 }

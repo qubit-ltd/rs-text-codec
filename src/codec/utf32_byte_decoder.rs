@@ -36,7 +36,7 @@ use super::helpers;
 ///
 /// let decoder = Utf32ByteDecoder::new(ByteOrder::BigEndian);
 /// let decoded = decoder
-///     .decode_prefix(&[0x00, 0x01, 0xf6, 0x00])
+///     .decode_prefix(&[0x00, 0x01, 0xf6, 0x00], 0)
 ///     .expect("valid UTF-32BE");
 ///
 /// assert_eq!(
@@ -88,7 +88,7 @@ impl TextDecoder<u8> for Utf32ByteDecoder {
         Utf32::MAX_BYTES_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u8]) -> TextDecodeResult<DecodeStatus> {
-        helpers::decode_utf32_bytes_prefix(input, self.byte_order)
+    fn decode_prefix(&self, input: &[u8], index: usize) -> TextDecodeResult<DecodeStatus> {
+        helpers::decode_utf32_bytes_prefix(input, index, self.byte_order)
     }
 }

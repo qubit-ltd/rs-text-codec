@@ -29,7 +29,7 @@ use super::helpers;
 /// };
 ///
 /// let decoder = Utf16U16Decoder;
-/// let decoded = decoder.decode_prefix(&[0xd83d, 0xde00]).expect("valid pair");
+/// let decoded = decoder.decode_prefix(&[0xd83d, 0xde00], 0).expect("valid pair");
 ///
 /// assert_eq!(
 ///     DecodeStatus::Complete {
@@ -51,7 +51,7 @@ impl TextDecoder<u16> for Utf16U16Decoder {
         Utf16::MAX_UNITS_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u16]) -> TextDecodeResult<DecodeStatus> {
-        helpers::decode_utf16_units_prefix(input)
+    fn decode_prefix(&self, input: &[u16], index: usize) -> TextDecodeResult<DecodeStatus> {
+        helpers::decode_utf16_units_prefix(input, index)
     }
 }

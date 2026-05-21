@@ -36,7 +36,7 @@ use super::helpers;
 ///
 /// let decoder = Utf16ByteDecoder::new(ByteOrder::LittleEndian);
 /// let decoded = decoder
-///     .decode_prefix(&[0x3d, 0xd8, 0x00, 0xde])
+///     .decode_prefix(&[0x3d, 0xd8, 0x00, 0xde], 0)
 ///     .expect("valid UTF-16LE");
 ///
 /// assert_eq!(
@@ -88,7 +88,7 @@ impl TextDecoder<u8> for Utf16ByteDecoder {
         Utf16::MAX_BYTES_PER_CHAR
     }
 
-    fn decode_prefix(&self, input: &[u8]) -> TextDecodeResult<DecodeStatus> {
-        helpers::decode_utf16_bytes_prefix(input, self.byte_order)
+    fn decode_prefix(&self, input: &[u8], index: usize) -> TextDecodeResult<DecodeStatus> {
+        helpers::decode_utf16_bytes_prefix(input, index, self.byte_order)
     }
 }
