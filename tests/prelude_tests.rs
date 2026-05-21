@@ -1,7 +1,7 @@
 use qubit_unicode::prelude::{
     Ascii,
     ByteOrder,
-    DecodeResult,
+    DecodeStatus,
     TextDecoder,
     TextEncoder,
     TextEncoding,
@@ -32,16 +32,16 @@ fn test_prelude_reexports_common_types() {
     );
 
     let utf8 = Utf8Codec;
-    assert_eq!(TextEncoding::Utf8, TextDecoder::<u8>::encoding(&utf8));
-    assert_eq!(TextEncoding::Utf8, TextEncoder::<u8>::encoding(&utf8));
+    assert_eq!(TextEncoding::UTF_8, TextDecoder::<u8>::encoding(&utf8));
+    assert_eq!(TextEncoding::UTF_8, TextEncoder::<u8>::encoding(&utf8));
     assert!(matches!(
         utf8.decode_prefix("A".as_bytes()).expect("UTF-8 prefix"),
-        DecodeResult::Complete(_),
+        DecodeStatus::Complete { .. },
     ));
 
     let utf16 = Utf16ByteCodec::new(ByteOrder::BigEndian);
-    assert_eq!(TextEncoding::Utf16, TextDecoder::<u8>::encoding(&utf16));
+    assert_eq!(TextEncoding::UTF_16, TextDecoder::<u8>::encoding(&utf16));
 
     let utf32 = Utf32ByteCodec::new(ByteOrder::LittleEndian);
-    assert_eq!(TextEncoding::Utf32, TextEncoder::<u8>::encoding(&utf32));
+    assert_eq!(TextEncoding::UTF_32, TextEncoder::<u8>::encoding(&utf32));
 }
