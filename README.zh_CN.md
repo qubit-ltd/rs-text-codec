@@ -137,7 +137,6 @@ Byte codec 持有一个 `ByteOrder` 值。如果 byte stream 可能包含 BOM，
 | `DecodeStatus::NeedMore { required, available }` | 当前 prefix 目前合法，但还需要更多 unit |
 | `TextDecodingError` | 包含 encoding、decoding error kind 和输入 unit index |
 | `TextEncodingError` | 包含 encoding、encoding error kind 和输出/输入 index |
-| `TextCodingError` | 供有意合并 encoding 和 decoding failure 的 API 使用 |
 
 `DecodeStatus::NeedMore` 不是错误。流式 text reader 应在可能时继续读取更多输入，并在 EOF 时把它转成 incomplete-sequence error 或合适的 `std::io::Error`。
 

@@ -14,8 +14,6 @@ pub use crate::{
     ByteOrder,
     DecodeStatus,
     TextCodec,
-    TextCodingError,
-    TextCodingResult,
     TextDecoder,
     TextDecodingError,
     TextDecodingErrorKind,

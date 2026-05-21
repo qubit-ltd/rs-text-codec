@@ -1,4 +1,3 @@
-mod text_coding_error_tests;
 mod text_decoding_error_kind_tests;
 mod text_decoding_error_tests;
 mod text_encoding_error_kind_tests;

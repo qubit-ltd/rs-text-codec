@@ -59,8 +59,6 @@ pub use encoding::{
     UnicodeBom,
 };
 pub use error::{
-    TextCodingError,
-    TextCodingResult,
     TextDecodingError,
     TextDecodingErrorKind,
     TextDecodingResult,

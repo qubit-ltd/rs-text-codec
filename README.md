@@ -142,7 +142,6 @@ Byte codecs carry a `ByteOrder` value. Use `UnicodeBom::detect`, `Utf16::detect_
 | `DecodeStatus::NeedMore { required, available }` | The prefix is valid so far but more units are required |
 | `TextDecodingError` | Encoding, decoding error kind, and input unit index |
 | `TextEncodingError` | Encoding, encoding error kind, and output/input index |
-| `TextCodingError` | Wrapper for APIs that intentionally combine encoding and decoding failures |
 
 `DecodeStatus::NeedMore` is not an error. A streaming text reader should read more input when possible, and convert it at EOF into an incomplete-sequence error or an appropriate `std::io::Error`.
 

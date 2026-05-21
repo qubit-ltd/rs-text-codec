@@ -23,6 +23,9 @@ pub struct TextDecodingError {
     index: usize,
 }
 
+/// Result type returned by text decoders.
+pub type TextDecodingResult<T> = Result<T, TextDecodingError>;
+
 impl TextDecodingError {
     /// Creates a decoding error.
     ///

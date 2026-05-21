@@ -23,6 +23,9 @@ pub struct TextEncodingError {
     index: usize,
 }
 
+/// Result type returned by text encoders.
+pub type TextEncodingResult<T> = Result<T, TextEncodingError>;
+
 impl TextEncodingError {
     /// Creates an encoding error.
     ///
