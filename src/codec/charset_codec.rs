@@ -1,0 +1,83 @@
+/*******************************************************************************
+ *
+ *    Copyright (c) 2026 Haixing Hu.
+ *
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
+ *
+ ******************************************************************************/
+use crate::{
+    Charset,
+    CharsetDecodeResult,
+    CharsetEncodeResult,
+};
+
+use super::decode_status::DecodeStatus;
+
+/// Low-level charset algorithm for one storage-unit representation.
+///
+/// `CharsetCodec` performs only primitive per-character encoding and decoding.
+/// Policy decisions such as replacement, ignoring malformed input, or reporting
+/// unmappable characters are handled by [`crate::CharsetDecoder`] and
+/// [`crate::CharsetEncoder`].
+///
+/// # Type Parameters
+///
+/// - `T`: Storage unit used by the encoded representation, such as `u8` for
+///   byte-oriented charsets, `u16` for UTF-16 code units, or `u32` for UTF-32
+///   code units.
+pub trait CharsetCodec<T> {
+    /// Returns the charset handled by this codec.
+    ///
+    /// # Returns
+    ///
+    /// Returns the codec's charset descriptor.
+    #[must_use]
+    fn charset(&self) -> Charset;
+
+    /// Returns the maximum number of storage units needed for one character.
+    ///
+    /// # Returns
+    ///
+    /// Returns an upper bound for one encoded Unicode scalar value.
+    #[must_use]
+    fn max_units_per_char(&self) -> usize;
+
+    /// Decodes one Unicode scalar value from `input` starting at `index`.
+    ///
+    /// # Parameters
+    ///
+    /// - `input`: Complete input unit slice.
+    /// - `index`: Absolute input unit index where decoding starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns [`DecodeStatus::Complete`] when one scalar value is available.
+    /// Returns [`DecodeStatus::NeedMore`] when the current prefix is valid but
+    /// incomplete.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::CharsetDecodeError`] when the sequence at `index` is
+    /// malformed or decodes to a non-scalar value.
+    fn decode_one(&self, input: &[T], index: usize) -> CharsetDecodeResult<DecodeStatus>;
+
+    /// Encodes one Unicode scalar value into `output` starting at `index`.
+    ///
+    /// # Parameters
+    ///
+    /// - `ch`: Unicode scalar value to encode.
+    /// - `output`: Complete output unit slice.
+    /// - `index`: Absolute output unit index where writing starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns the number of output units written.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::CharsetEncodeError`] when `ch` cannot be represented by
+    /// this charset or `output` does not have enough capacity from `index`.
+    fn encode_one(&self, ch: char, output: &mut [T], index: usize) -> CharsetEncodeResult<usize>;
+}

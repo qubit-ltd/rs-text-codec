@@ -1,4 +1,4 @@
-mod text_decode_error_kind_tests;
-mod text_decode_error_tests;
-mod text_encode_error_kind_tests;
-mod text_encode_error_tests;
+mod charset_decode_error_kind_tests;
+mod charset_decode_error_tests;
+mod charset_encode_error_kind_tests;
+mod charset_encode_error_tests;
