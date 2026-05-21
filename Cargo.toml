@@ -28,6 +28,30 @@ include = [
 name = "qubit_unicode"
 doctest = true
 
+[[test]]
+name = "codec-codecs"
+path = "tests/codec/codecs/mod.rs"
+
+[[test]]
+name = "error"
+path = "tests/error/mod.rs"
+
+[[test]]
+name = "text-decoder"
+path = "tests/codec/text_decoder/mod.rs"
+
+[[test]]
+name = "text-encoder"
+path = "tests/codec/text_encoder/mod.rs"
+
+[[test]]
+name = "charset"
+path = "tests/charset/mod.rs"
+
+[[test]]
+name = "encoding"
+path = "tests/encoding/mod.rs"
+
 [dependencies]
 thiserror = "2.0"
 

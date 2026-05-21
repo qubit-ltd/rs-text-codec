@@ -38,7 +38,7 @@ qubit-unicode = "0.1"
 ```rust
 use qubit_unicode::{
     ByteOrder,
-    DecodeResult,
+    DecodeStatus,
     TextDecoder,
     TextEncoder,
     Unicode,
@@ -57,7 +57,13 @@ assert_eq!(Some(UnicodeBom::Utf8), UnicodeBom::detect(&[0xEF, 0xBB, 0xBF]));
 
 let decoder = Utf8Decoder;
 let decoded = decoder.decode_prefix("中".as_bytes())?;
-assert_eq!(DecodeResult::Complete(qubit_unicode::Decoded::new('中', 3)), decoded);
+assert_eq!(
+    DecodeStatus::Complete {
+        value: '中',
+        consumed: 3,
+    },
+    decoded,
+);
 
 let encoder = Utf8Encoder;
 let mut utf8 = [0; Utf8::MAX_BYTES_PER_CHAR];
@@ -102,6 +108,13 @@ UTF-8 解码遵循 [Unicode Standard, Table 3-7](https://www.unicode.org/version
 
 `T` 表示 buffer 的 storage unit，不总是 Unicode code unit。UTF-8 使用 `u8`，UTF-16 code-unit codec 使用 `u16`，byte-serialized UTF-16 使用 `u8`，UTF-32 code-unit codec 使用 `u32`，byte-serialized UTF-32 使用 `u8`。
 
+`TextEncoding` 是轻量的 encoding 身份描述对象，包含稳定 `id`、展示用
+`name` 和可接受的 `aliases`。内置描述对象包括 `TextEncoding::ASCII`、
+`TextEncoding::UTF_8`、`TextEncoding::UTF_16` 和 `TextEncoding::UTF_32`；
+外部 encoding adapter 可以定义自己的静态描述对象，例如
+`TextEncoding::new("gbk", "GBK", &["cp936"])`。相等性和哈希只基于 `id`，
+`matches_label` 会用 ASCII 忽略大小写比较来匹配 id、展示名和别名。
+
 ### 内置 Codec
 
 | Codec family | Storage unit | 类型 |
@@ -114,19 +127,19 @@ UTF-8 解码遵循 [Unicode Standard, Table 3-7](https://www.unicode.org/version
 
 Byte codec 持有一个 `ByteOrder` 值。如果 byte stream 可能包含 BOM，可使用 `UnicodeBom::detect`、`Utf16::detect_bom` 或 `Utf32::detect_bom`。
 
-### Decode Result 与错误类型
+### Decode Status 与错误类型
 
 `TextDecoder::decode_prefix` 会区分输入不足和输入非法：
 
 | 类型 | 用途 |
 | --- | --- |
-| `DecodeResult::Complete(Decoded<char>)` | 已解码出完整 scalar value 和消耗的 unit 数 |
-| `DecodeResult::NeedMore(NeedMore)` | 当前 prefix 目前合法，但还需要更多 unit |
+| `DecodeStatus::Complete { value, consumed }` | 已解码出完整 scalar value 和消耗的 unit 数 |
+| `DecodeStatus::NeedMore { required, available }` | 当前 prefix 目前合法，但还需要更多 unit |
 | `TextDecodingError` | 包含 encoding、decoding error kind 和输入 unit index |
 | `TextEncodingError` | 包含 encoding、encoding error kind 和输出/输入 index |
 | `TextCodingError` | 供有意合并 encoding 和 decoding failure 的 API 使用 |
 
-`NeedMore` 不是错误。流式 text reader 应在可能时继续读取更多输入，并在 EOF 时把 `NeedMore` 转成 incomplete-sequence error 或合适的 `std::io::Error`。
+`DecodeStatus::NeedMore` 不是错误。流式 text reader 应在可能时继续读取更多输入，并在 EOF 时把它转成 incomplete-sequence error 或合适的 `std::io::Error`。
 
 ### ASCII Helper
 
@@ -141,7 +154,7 @@ Byte codec 持有一个 `ByteOrder` 值。如果 byte stream 可能包含 BOM，
 
 ## Prelude
 
-`qubit_unicode::prelude` 重导出核心 namespace enum、codec trait、内置 codec 类型、byte-order/BOM helper、decode-result 类型和 text coding error。
+`qubit_unicode::prelude` 重导出核心 namespace enum、codec trait、内置 codec 类型、byte-order/BOM helper、decode-status 类型和 text coding error。
 
 ```rust
 use qubit_unicode::prelude::*;

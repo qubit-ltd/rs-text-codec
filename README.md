@@ -39,7 +39,7 @@ qubit-unicode = "0.1"
 ```rust
 use qubit_unicode::{
     ByteOrder,
-    DecodeResult,
+    DecodeStatus,
     TextDecoder,
     TextEncoder,
     Unicode,
@@ -58,7 +58,13 @@ assert_eq!(Some(UnicodeBom::Utf8), UnicodeBom::detect(&[0xEF, 0xBB, 0xBF]));
 
 let decoder = Utf8Decoder;
 let decoded = decoder.decode_prefix("中".as_bytes())?;
-assert_eq!(DecodeResult::Complete(qubit_unicode::Decoded::new('中', 3)), decoded);
+assert_eq!(
+    DecodeStatus::Complete {
+        value: '中',
+        consumed: 3,
+    },
+    decoded,
+);
 
 let encoder = Utf8Encoder;
 let mut utf8 = [0; Utf8::MAX_BYTES_PER_CHAR];
@@ -106,6 +112,14 @@ Encoding and decoding are modeled by small traits over caller-provided buffers.
 
 `T` is the buffer storage unit, not always the Unicode code unit. UTF-8 uses `u8`, UTF-16 code-unit codecs use `u16`, byte-serialized UTF-16 uses `u8`, UTF-32 code-unit codecs use `u32`, and byte-serialized UTF-32 uses `u8`.
 
+`TextEncoding` is a lightweight encoding identity descriptor with a stable `id`,
+display `name`, and accepted `aliases`. Built-in descriptors are available as
+`TextEncoding::ASCII`, `TextEncoding::UTF_8`, `TextEncoding::UTF_16`, and
+`TextEncoding::UTF_32`; adapters for external encodings can define their own
+static descriptors, for example `TextEncoding::new("gbk", "GBK", &["cp936"])`.
+Equality and hashing use only the `id`, while `matches_label` accepts the id,
+display name, or aliases with ASCII case-insensitive comparison.
+
 ### Built-in Codecs
 
 | Codec family | Storage unit | Types |
@@ -118,19 +132,19 @@ Encoding and decoding are modeled by small traits over caller-provided buffers.
 
 Byte codecs carry a `ByteOrder` value. Use `UnicodeBom::detect`, `Utf16::detect_bom`, or `Utf32::detect_bom` when a byte stream may include a BOM.
 
-### Decode Result and Errors
+### Decode Status and Errors
 
 `TextDecoder::decode_prefix` distinguishes incomplete input from malformed input:
 
 | Type | Purpose |
 | --- | --- |
-| `DecodeResult::Complete(Decoded<char>)` | A complete scalar value and consumed unit count |
-| `DecodeResult::NeedMore(NeedMore)` | The prefix is valid so far but more units are required |
+| `DecodeStatus::Complete { value, consumed }` | A complete scalar value and consumed unit count |
+| `DecodeStatus::NeedMore { required, available }` | The prefix is valid so far but more units are required |
 | `TextDecodingError` | Encoding, decoding error kind, and input unit index |
 | `TextEncodingError` | Encoding, encoding error kind, and output/input index |
 | `TextCodingError` | Wrapper for APIs that intentionally combine encoding and decoding failures |
 
-`NeedMore` is not an error. A streaming text reader should read more input when possible, and convert `NeedMore` at EOF into an incomplete-sequence error or an appropriate `std::io::Error`.
+`DecodeStatus::NeedMore` is not an error. A streaming text reader should read more input when possible, and convert it at EOF into an incomplete-sequence error or an appropriate `std::io::Error`.
 
 ### ASCII Helpers
 
@@ -145,7 +159,7 @@ Byte codecs carry a `ByteOrder` value. Use `UnicodeBom::detect`, `Utf16::detect_
 
 ## Prelude
 
-`qubit_unicode::prelude` re-exports the core namespace enums, codec traits, built-in codec types, byte-order/BOM helpers, decode-result types, and text coding errors.
+`qubit_unicode::prelude` re-exports the core namespace enums, codec traits, built-in codec types, byte-order/BOM helpers, decode-status types, and text coding errors.
 
 ```rust
 use qubit_unicode::prelude::*;
