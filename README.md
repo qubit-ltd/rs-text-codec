@@ -131,7 +131,7 @@ display name, or aliases with ASCII case-insensitive comparison.
 | UTF-32 code units | `u32` | `Utf32U32Encoder`, `Utf32U32Decoder`, `Utf32U32Codec` |
 | UTF-32 bytes | `u8` | `Utf32ByteEncoder`, `Utf32ByteDecoder`, `Utf32ByteCodec` |
 
-Byte codecs carry a `ByteOrder` value. Use `UnicodeBom::detect`, `Utf16::detect_bom`, or `Utf32::detect_bom` when a byte stream may include a BOM.
+Byte codecs carry a `ByteOrder` value. Use `UnicodeBom::detect`, `Utf16::detect_bom`, or `Utf32::detect_bom` when a byte stream may include a BOM. The byte codecs do not detect, skip, or emit BOM bytes automatically. Streaming callers should buffer up to four bytes, or read until EOF, before deciding the BOM because UTF-32 little-endian (`FF FE 00 00`) overlaps the UTF-16 little-endian prefix (`FF FE`).
 
 ### Decode Status and Errors
 
@@ -141,10 +141,12 @@ Byte codecs carry a `ByteOrder` value. Use `UnicodeBom::detect`, `Utf16::detect_
 | --- | --- |
 | `DecodeStatus::Complete { value, consumed }` | A complete scalar value and consumed unit count |
 | `DecodeStatus::NeedMore { required, available }` | The prefix is valid so far but more units are required |
-| `TextDecodingError` | Encoding, decoding error kind, and input unit index |
-| `TextEncodingError` | Encoding, encoding error kind, and output/input index |
+| `TextDecodingError` | Encoding, decoding error kind, input unit index, and optional raw value |
+| `TextEncodingError` | Encoding, encoding error kind, output/input index, and optional raw value |
 
 `DecodeStatus::NeedMore` is not an error. A streaming text reader should read more input when possible, and convert it at EOF into an incomplete-sequence error or an appropriate `std::io::Error`.
+
+Errors tied to a raw value, such as an invalid UTF-32 unit or invalid raw code point passed to `encode_code_point`, expose that value through `value()`.
 
 ### ASCII Helpers
 

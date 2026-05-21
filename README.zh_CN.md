@@ -127,7 +127,7 @@ UTF-8 解码遵循 [Unicode Standard 表 3-7](https://www.unicode.org/versions/l
 | UTF-32 码元 | `u32` | `Utf32U32Encoder`、`Utf32U32Decoder`、`Utf32U32Codec` |
 | UTF-32 字节 | `u8` | `Utf32ByteEncoder`、`Utf32ByteDecoder`、`Utf32ByteCodec` |
 
-字节编解码器持有一个 `ByteOrder` 值。如果字节流可能包含 BOM，可使用 `UnicodeBom::detect`、`Utf16::detect_bom` 或 `Utf32::detect_bom`。
+字节编解码器持有一个 `ByteOrder` 值。如果字节流可能包含 BOM，可使用 `UnicodeBom::detect`、`Utf16::detect_bom` 或 `Utf32::detect_bom`。字节编解码器不会自动检测、跳过或写出 BOM。流式调用方应先缓冲最多 4 个字节，或读到 EOF，再判断 BOM，因为 UTF-32 little-endian（`FF FE 00 00`）和 UTF-16 little-endian 前缀（`FF FE`）存在重叠。
 
 ### 解码状态与错误类型
 
@@ -137,10 +137,12 @@ UTF-8 解码遵循 [Unicode Standard 表 3-7](https://www.unicode.org/versions/l
 | --- | --- |
 | `DecodeStatus::Complete { value, consumed }` | 已解码出完整标量值和消耗的单元数 |
 | `DecodeStatus::NeedMore { required, available }` | 当前前缀目前合法，但还需要更多单元 |
-| `TextDecodingError` | 包含编码、解码错误种类和输入单元下标 |
-| `TextEncodingError` | 包含编码、编码错误种类和输出/输入下标 |
+| `TextDecodingError` | 包含编码、解码错误种类、输入单元下标和可选原始值 |
+| `TextEncodingError` | 包含编码、编码错误种类、输出/输入下标和可选原始值 |
 
 `DecodeStatus::NeedMore` 不是错误。流式文本读取器应在可能时继续读取更多输入，并在输入结束时把它转成不完整序列错误或合适的 `std::io::Error`。
+
+与原始值相关的错误，例如非法 UTF-32 单元，或传给 `encode_code_point` 的非法原始码点，可通过 `value()` 取回该值。
 
 ### ASCII 辅助工具
 
