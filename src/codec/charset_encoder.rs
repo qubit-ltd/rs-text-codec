@@ -49,6 +49,7 @@ where
 {
     /// Default replacement character used when unmappable input is replaced.
     pub const DEFAULT_REPLACEMENT: char = '\u{fffd}';
+
     /// Fallback replacement used when the default replacement is unmappable.
     pub const DEFAULT_FALLBACK_REPLACEMENT: char = '?';
 
@@ -180,6 +181,30 @@ where
         Ok(())
     }
 
+    /// Returns whether the replacement character can be encoded by the codec.
+    ///
+    /// This helper is used during construction and configuration to fail fast on
+    /// unsupported replacement characters.
+    ///
+    /// # Parameters
+    ///
+    /// - `codec`: Target codec to validate against.
+    /// - `replacement`: Candidate replacement character.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` when the replacement character is encodable.
+    /// - `Err(Self::Error)` when the replacement cannot be encoded.
+    ///
+    /// # Errors
+    ///
+    /// - `CharsetEncodeErrorKind::UnmappableCharacter` when `replacement` cannot
+    ///   be represented by the codec.
+    /// - `CharsetEncodeErrorKind::BufferTooSmall` if the temporary probe buffer is
+    ///   unexpectedly too small.
+    /// - `CharsetEncodeErrorKind::InvalidInputIndex` when the codec rejects a
+    ///   zero index probe write.
+    /// - `CharsetEncodeErrorKind::InvalidCodePoint` for invalid scalar values.
     fn replacement_is_encodable(codec: &C, replacement: char) -> Result<(), CharsetEncodeError> {
         let mut output = vec![C::Unit::default(); codec.max_units_per_char().max(1)];
         match codec.encode_one(replacement, output.as_mut_slice(), 0) {
