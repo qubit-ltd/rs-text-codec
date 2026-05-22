@@ -21,4 +21,8 @@ pub use coding::{
     Coder,
     CoderProgress,
     CoderStatus,
+    Leb128Codec,
+    Leb128DecodeError,
+    Leb128DecodeErrorKind,
+    ZigZagCodec,
 };

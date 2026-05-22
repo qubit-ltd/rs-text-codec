@@ -31,6 +31,9 @@ pub use crate::{
     CoderStatus,
     DecodeStatus,
     Latin1Codec,
+    Leb128Codec,
+    Leb128DecodeError,
+    Leb128DecodeErrorKind,
     MalformedAction,
     Unicode,
     UnicodeBom,
@@ -43,4 +46,5 @@ pub use crate::{
     Utf32,
     Utf32ByteCodec,
     Utf32U32Codec,
+    ZigZagCodec,
 };

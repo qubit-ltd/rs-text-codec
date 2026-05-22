@@ -68,4 +68,8 @@ pub use io::{
     Coder,
     CoderProgress,
     CoderStatus,
+    Leb128Codec,
+    Leb128DecodeError,
+    Leb128DecodeErrorKind,
+    ZigZagCodec,
 };
