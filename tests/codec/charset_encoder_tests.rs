@@ -114,6 +114,99 @@ impl CharsetCodec for InvalidBangCodec {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+struct ReplacementFallbackCodec;
+
+impl CharsetCodec for ReplacementFallbackCodec {
+    type Unit = u8;
+    fn charset(&self) -> Charset {
+        Charset::ASCII
+    }
+
+    fn max_units_per_char(&self) -> usize {
+        1
+    }
+
+    fn decode_one(&self, _input: &[u8], index: usize) -> CharsetDecodeResult<DecodeStatus> {
+        Err(CharsetDecodeError::malformed_sequence(
+            Charset::ASCII,
+            index,
+        ))
+    }
+
+    fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
+        if index >= output.len() {
+            return Err(CharsetEncodeError::buffer_too_small(
+                Charset::ASCII,
+                index,
+                index + 1,
+                0,
+            ));
+        }
+        if ch == '\u{fffd}' {
+            return Err(CharsetEncodeError::unmappable_character(
+                Charset::ASCII,
+                index,
+                ch as u32,
+            ));
+        }
+        if ch == '?' {
+            output[index] = b'?';
+            return Ok(1);
+        }
+        if !ch.is_ascii() {
+            return Err(CharsetEncodeError::unmappable_character(
+                Charset::ASCII,
+                index,
+                ch as u32,
+            ));
+        }
+        output[index] = ch as u8;
+        Ok(1)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct ReplacementAllUnencodableCodec;
+
+impl CharsetCodec for ReplacementAllUnencodableCodec {
+    type Unit = u8;
+    fn charset(&self) -> Charset {
+        Charset::ASCII
+    }
+
+    fn max_units_per_char(&self) -> usize {
+        1
+    }
+
+    fn decode_one(&self, _input: &[u8], index: usize) -> CharsetDecodeResult<DecodeStatus> {
+        Err(CharsetDecodeError::malformed_sequence(
+            Charset::ASCII,
+            index,
+        ))
+    }
+
+    fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
+        if index >= output.len() {
+            return Err(CharsetEncodeError::buffer_too_small(
+                Charset::ASCII,
+                index,
+                index + 1,
+                0,
+            ));
+        }
+        if ch == '\u{fffd}' || ch == '?' || !ch.is_ascii() {
+            return Err(CharsetEncodeError::unmappable_character(
+                Charset::ASCII,
+                index,
+                ch as u32,
+            ));
+        }
+        output[index] = ch as u8;
+        Ok(1)
+    }
+}
+
 #[test]
 fn test_charset_encoder_exposes_configuration_and_bounds() {
     let mut encoder = CharsetEncoder::new(AsciiBytesCodec);
@@ -124,7 +217,9 @@ fn test_charset_encoder_exposes_configuration_and_bounds() {
     assert_eq!('?', encoder.replacement());
     assert_eq!(Some(3), encoder.max_output_len(3));
 
-    encoder.set_replacement('*');
+    encoder
+        .set_replacement('*')
+        .expect("user replacement should be encodable");
     encoder.set_unmappable_action(UnmappableAction::Ignore);
 
     assert_eq!('*', encoder.replacement());
@@ -222,18 +317,24 @@ fn test_charset_encoder_reports_unmappable_replacement() {
     let input = ['中'];
     let mut output = [0_u8; 1];
     let mut encoder = CharsetEncoder::new(AsciiBytesCodec);
-    encoder.set_replacement('é');
-
     let error = encoder
-        .convert(&input, 0, &mut output, 0)
-        .expect_err("replacement character is unmappable too");
+        .set_replacement('é')
+        .expect_err("user replacement should fail when unmappable");
 
     assert!(matches!(
         error.kind(),
         CharsetEncodeErrorKind::UnmappableCharacter { .. },
     ));
-    assert_eq!(0, error.index());
-    assert_eq!(Some('é' as u32), error.value());
+
+    let mut encoder = CharsetEncoder::new(AsciiBytesCodec);
+    let progress = encoder
+        .convert(&input, 0, &mut output, 0)
+        .expect("fallback replacement should still be used");
+
+    assert_eq!(CoderStatus::Complete, progress.status());
+    assert_eq!(1, progress.read());
+    assert_eq!(1, progress.written());
+    assert_eq!(b"?", &output);
 }
 
 #[test]
@@ -251,4 +352,50 @@ fn test_charset_encoder_propagates_non_policy_encoding_errors() {
         CharsetEncodeErrorKind::InvalidCodePoint { .. },
     ));
     assert_eq!(Some('!' as u32), error.value());
+}
+
+#[test]
+fn test_charset_encoder_with_replacement_accepts_valid_character() {
+    let encoder = CharsetEncoder::new(AsciiBytesCodec)
+        .with_replacement('!')
+        .expect("replacement character should be accepted");
+
+    assert_eq!('!', encoder.replacement());
+}
+
+#[test]
+fn test_charset_encoder_new_falls_back_to_fallback_replacement_when_default_is_not_encodable() {
+    let mut encoder = CharsetEncoder::new(ReplacementFallbackCodec);
+
+    let mut output = [0_u8; 1];
+    let progress = encoder
+        .convert(['中'].as_slice(), 0, &mut output, 0)
+        .expect("fallback replacement should be used");
+
+    assert_eq!(CoderStatus::Complete, progress.status());
+    assert_eq!(
+        CharsetEncoder::<ReplacementFallbackCodec>::DEFAULT_FALLBACK_REPLACEMENT,
+        '?'
+    );
+    assert_eq!(1, progress.read());
+    assert_eq!(1, progress.written());
+    assert_eq!(b"?", &output);
+}
+
+#[test]
+#[should_panic]
+fn test_charset_encoder_new_panics_if_no_default_or_fallback_replacement_is_encodable() {
+    let _encoder = CharsetEncoder::new(ReplacementAllUnencodableCodec);
+}
+
+#[test]
+fn test_charset_encoder_with_replacement_rejects_unencodable_character_immediately() {
+    let error = CharsetEncoder::new(AsciiBytesCodec)
+        .with_replacement('中')
+        .expect_err("unmappable replacement should be rejected");
+
+    assert!(matches!(
+        error.kind(),
+        CharsetEncodeErrorKind::UnmappableCharacter { .. },
+    ));
 }
