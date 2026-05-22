@@ -5,6 +5,8 @@ use qubit_text_codec::{
     CharsetDecodeErrorKind,
     CharsetDecodeResult,
     CharsetDecoder,
+    CharsetEncodeError,
+    CharsetEncodeErrorKind,
     CharsetEncodeResult,
     Coder,
     CoderStatus,
@@ -42,12 +44,11 @@ impl CharsetCodec for IncompleteErrorCodec {
         _output: &mut [u8],
         index: usize,
     ) -> CharsetEncodeResult<usize> {
-        Err(qubit_text_codec::CharsetEncodeError::buffer_too_small(
-            Charset::ASCII,
-            index,
-            index + 1,
-            0,
-        ))
+        let kind = CharsetEncodeErrorKind::BufferTooSmall {
+            required: index + 1,
+            available: 0,
+        };
+        Err(CharsetEncodeError::new(Charset::ASCII, kind, index))
     }
 }
 

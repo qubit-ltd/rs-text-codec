@@ -7,6 +7,7 @@ use qubit_text_codec::{
     CharsetDecodeResult,
     CharsetDecoder,
     CharsetEncodeError,
+    CharsetEncodeErrorKind,
     CharsetEncodeResult,
     CharsetEncoder,
     Coder,
@@ -53,19 +54,15 @@ impl CharsetCodec for AsciiBytesCodec {
 
     fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
         if !ch.is_ascii() {
-            return Err(CharsetEncodeError::unmappable_character(
-                Charset::ASCII,
-                index,
-                ch as u32,
-            ));
+            let kind = CharsetEncodeErrorKind::UnmappableCharacter { value: ch as u32 };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         if index >= output.len() {
-            return Err(CharsetEncodeError::buffer_too_small(
-                Charset::ASCII,
-                index,
-                index + 1,
-                0,
-            ));
+            let kind = CharsetEncodeErrorKind::BufferTooSmall {
+                required: index + 1,
+                available: 0,
+            };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         output[index] = ch as u8;
         Ok(1)
@@ -98,12 +95,11 @@ impl CharsetCodec for ZeroWidthCodec {
         _output: &mut [u8],
         index: usize,
     ) -> CharsetEncodeResult<usize> {
-        Err(CharsetEncodeError::buffer_too_small(
-            Charset::ASCII,
-            index,
-            index + 1,
-            0,
-        ))
+        let kind = CharsetEncodeErrorKind::BufferTooSmall {
+            required: index + 1,
+            available: 0,
+        };
+        Err(CharsetEncodeError::new(Charset::ASCII, kind, index))
     }
 }
 
@@ -130,12 +126,11 @@ impl CharsetCodec for NeedOutputNoReadCodec {
 
     fn encode_one(&self, _ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
         if index >= output.len() {
-            return Err(CharsetEncodeError::buffer_too_small(
-                Charset::ASCII,
-                index,
-                index + 1,
-                0,
-            ));
+            let kind = CharsetEncodeErrorKind::BufferTooSmall {
+                required: index + 1,
+                available: 0,
+            };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
 
         output[index] = 0x41;

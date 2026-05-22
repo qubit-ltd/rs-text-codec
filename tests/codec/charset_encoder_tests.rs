@@ -55,19 +55,15 @@ impl CharsetCodec for AsciiBytesCodec {
 
     fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
         if !ch.is_ascii() {
-            return Err(CharsetEncodeError::unmappable_character(
-                Charset::ASCII,
-                index,
-                ch as u32,
-            ));
+            let kind = CharsetEncodeErrorKind::UnmappableCharacter { value: ch as u32 };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         if index >= output.len() {
-            return Err(CharsetEncodeError::buffer_too_small(
-                Charset::ASCII,
-                index,
-                index + 1,
-                0,
-            ));
+            let kind = CharsetEncodeErrorKind::BufferTooSmall {
+                required: index + 1,
+                available: 0,
+            };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         output[index] = ch as u8;
         Ok(1)
@@ -96,19 +92,15 @@ impl CharsetCodec for InvalidBangCodec {
 
     fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
         if ch == '!' {
-            return Err(CharsetEncodeError::invalid_code_point(
-                Charset::ASCII,
-                index,
-                ch as u32,
-            ));
+            let kind = CharsetEncodeErrorKind::InvalidCodePoint { value: ch as u32 };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         if index >= output.len() {
-            return Err(CharsetEncodeError::buffer_too_small(
-                Charset::ASCII,
-                index,
-                index + 1,
-                0,
-            ));
+            let kind = CharsetEncodeErrorKind::BufferTooSmall {
+                required: index + 1,
+                available: 0,
+            };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         output[index] = ch as u8;
         Ok(1)
@@ -137,30 +129,23 @@ impl CharsetCodec for ReplacementFallbackCodec {
 
     fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
         if index >= output.len() {
-            return Err(CharsetEncodeError::buffer_too_small(
-                Charset::ASCII,
-                index,
-                index + 1,
-                0,
-            ));
+            let kind = CharsetEncodeErrorKind::BufferTooSmall {
+                required: index + 1,
+                available: 0,
+            };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         if ch == '\u{fffd}' {
-            return Err(CharsetEncodeError::unmappable_character(
-                Charset::ASCII,
-                index,
-                ch as u32,
-            ));
+            let kind = CharsetEncodeErrorKind::UnmappableCharacter { value: ch as u32 };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         if ch == '?' {
             output[index] = b'?';
             return Ok(1);
         }
         if !ch.is_ascii() {
-            return Err(CharsetEncodeError::unmappable_character(
-                Charset::ASCII,
-                index,
-                ch as u32,
-            ));
+            let kind = CharsetEncodeErrorKind::UnmappableCharacter { value: ch as u32 };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         output[index] = ch as u8;
         Ok(1)
@@ -189,19 +174,15 @@ impl CharsetCodec for ReplacementAllUnencodableCodec {
 
     fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
         if index >= output.len() {
-            return Err(CharsetEncodeError::buffer_too_small(
-                Charset::ASCII,
-                index,
-                index + 1,
-                0,
-            ));
+            let kind = CharsetEncodeErrorKind::BufferTooSmall {
+                required: index + 1,
+                available: 0,
+            };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         if ch == '\u{fffd}' || ch == '?' || !ch.is_ascii() {
-            return Err(CharsetEncodeError::unmappable_character(
-                Charset::ASCII,
-                index,
-                ch as u32,
-            ));
+            let kind = CharsetEncodeErrorKind::UnmappableCharacter { value: ch as u32 };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         output[index] = ch as u8;
         Ok(1)
@@ -260,19 +241,15 @@ impl CharsetCodec for CountingAsciiEncoderCodec {
         let current = self.encode_calls.get();
         self.encode_calls.set(current + 1);
         if !ch.is_ascii() {
-            return Err(CharsetEncodeError::unmappable_character(
-                Charset::ASCII,
-                index,
-                ch as u32,
-            ));
+            let kind = CharsetEncodeErrorKind::UnmappableCharacter { value: ch as u32 };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         if index >= output.len() {
-            return Err(CharsetEncodeError::buffer_too_small(
-                Charset::ASCII,
-                index,
-                index + 1,
-                0,
-            ));
+            let kind = CharsetEncodeErrorKind::BufferTooSmall {
+                required: index + 1,
+                available: 0,
+            };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
         }
         output[index] = ch as u8;
         Ok(1)
@@ -479,7 +456,7 @@ fn test_charset_encoder_replacement_encoding_is_cached() {
     encoder
         .set_replacement('*')
         .expect("user replacement should be encodable");
-    assert_eq!(2, encoder.codec().encode_calls());
+    assert_eq!(3, encoder.codec().encode_calls());
 
     let input = ['A', '中'];
     let mut output = [0_u8; 2];
@@ -491,5 +468,5 @@ fn test_charset_encoder_replacement_encoding_is_cached() {
     assert_eq!(2, progress.read());
     assert_eq!(2, progress.written());
     assert_eq!(b"A*", &output);
-    assert_eq!(3, encoder.codec().encode_calls());
+    assert_eq!(5, encoder.codec().encode_calls());
 }

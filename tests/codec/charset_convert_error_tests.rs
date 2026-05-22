@@ -3,6 +3,7 @@ use qubit_text_codec::{
     CharsetConvertError,
     CharsetDecodeError,
     CharsetEncodeError,
+    CharsetEncodeErrorKind,
 };
 
 #[test]
@@ -15,12 +16,11 @@ fn test_charset_convert_error_wraps_decode_and_encode_errors() {
             .contains("Failed to decode source charset")
     );
 
-    let encode = CharsetConvertError::from(CharsetEncodeError::buffer_too_small(
-        Charset::UTF_8,
-        4,
-        4,
-        0,
-    ));
+    let kind = CharsetEncodeErrorKind::BufferTooSmall {
+        required: 4,
+        available: 0,
+    };
+    let encode = CharsetConvertError::from(CharsetEncodeError::new(Charset::UTF_8, kind, 4));
     assert!(
         encode
             .to_string()

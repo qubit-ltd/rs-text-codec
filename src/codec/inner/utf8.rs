@@ -12,6 +12,7 @@ use crate::{
     CharsetDecodeError,
     CharsetDecodeResult,
     CharsetEncodeError,
+    CharsetEncodeErrorKind,
     CharsetEncodeResult,
     DecodeStatus,
     Unicode,
@@ -102,26 +103,24 @@ pub(crate) fn decode_prefix(input: &[u8], index: usize) -> CharsetDecodeResult<D
 ///
 /// # Errors
 ///
-/// * `CharsetEncodeError::buffer_too_small` if the destination does not have enough
-///   space starting from `index`.
+/// * `CharsetEncodeErrorKind::BufferTooSmall` if the destination does not have
+///   enough space starting from `index`.
 pub(crate) fn encode_char(ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
     if index > output.len() {
-        return Err(CharsetEncodeError::buffer_too_small(
-            Charset::UTF_8,
-            index,
-            index + 1,
-            0,
-        ));
+        let kind = CharsetEncodeErrorKind::BufferTooSmall {
+            required: index + 1,
+            available: 0,
+        };
+        return Err(CharsetEncodeError::new(Charset::UTF_8, kind, index));
     }
     let length = Utf8::byte_len(ch);
     let available = output.len() - index;
     if available < length {
-        return Err(CharsetEncodeError::buffer_too_small(
-            Charset::UTF_8,
-            index,
-            index + length,
+        let kind = CharsetEncodeErrorKind::BufferTooSmall {
+            required: index + length,
             available,
-        ));
+        };
+        return Err(CharsetEncodeError::new(Charset::UTF_8, kind, index));
     }
     let mut scratch = [0_u8; Utf8::MAX_BYTES_PER_CHAR];
     let encoded = ch.encode_utf8(&mut scratch);

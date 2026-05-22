@@ -8,7 +8,11 @@ use qubit_text_codec::{
 fn test_charset_encode_error_exposes_context() {
     const GBK: Charset = Charset::new("gbk", "GBK", &["cp936"]);
 
-    let error = CharsetEncodeError::buffer_too_small(Charset::UTF_16, 2, 4, 1);
+    let kind = CharsetEncodeErrorKind::BufferTooSmall {
+        required: 4,
+        available: 1,
+    };
+    let error = CharsetEncodeError::new(Charset::UTF_16, kind, 2);
 
     assert_eq!(Charset::UTF_16, error.charset());
     assert!(matches!(
@@ -23,7 +27,8 @@ fn test_charset_encode_error_exposes_context() {
         error.to_string(),
     );
 
-    let invalid = CharsetEncodeError::invalid_code_point(Charset::UTF_8, 0, 0x110000);
+    let kind = CharsetEncodeErrorKind::InvalidCodePoint { value: 0x110000 };
+    let invalid = CharsetEncodeError::new(Charset::UTF_8, kind, 0);
     assert_eq!(Charset::UTF_8, invalid.charset());
     assert!(matches!(
         invalid.kind(),
@@ -36,7 +41,10 @@ fn test_charset_encode_error_exposes_context() {
         invalid.to_string(),
     );
 
-    let unmappable = CharsetEncodeError::unmappable_character(GBK, 4, '中' as u32);
+    let kind = CharsetEncodeErrorKind::UnmappableCharacter {
+        value: '中' as u32
+    };
+    let unmappable = CharsetEncodeError::new(GBK, kind, 4);
     assert_eq!(GBK, unmappable.charset());
     assert_eq!(
         CharsetEncodeErrorKind::UnmappableCharacter {
@@ -47,7 +55,8 @@ fn test_charset_encode_error_exposes_context() {
     assert_eq!(4, unmappable.index());
     assert_eq!(Some('中' as u32), unmappable.value());
 
-    let invalid_index = CharsetEncodeError::invalid_input_index(Charset::UTF_8, 8);
+    let kind = CharsetEncodeErrorKind::InvalidInputIndex { input_len: 0 };
+    let invalid_index = CharsetEncodeError::new(Charset::UTF_8, kind, 8);
     assert_eq!(Charset::UTF_8, invalid_index.charset());
     assert_eq!(
         CharsetEncodeErrorKind::InvalidInputIndex { input_len: 0 },

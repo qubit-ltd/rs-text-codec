@@ -13,6 +13,7 @@ use crate::{
     CharsetDecodeError,
     CharsetDecodeResult,
     CharsetEncodeError,
+    CharsetEncodeErrorKind,
     CharsetEncodeResult,
     DecodeStatus,
     Unicode,
@@ -113,29 +114,28 @@ pub(crate) fn decode_units_prefix(
 ///
 /// # Errors
 ///
-/// * `CharsetEncodeError::buffer_too_small` when insufficient room exists from `index`.
+/// * `CharsetEncodeErrorKind::BufferTooSmall` when insufficient room exists
+///   from `index`.
 pub(crate) fn encode_units_char(
     ch: char,
     output: &mut [u16],
     index: usize,
 ) -> CharsetEncodeResult<usize> {
     if index > output.len() {
-        return Err(CharsetEncodeError::buffer_too_small(
-            Charset::UTF_16,
-            index,
-            index + 1,
-            0,
-        ));
+        let kind = CharsetEncodeErrorKind::BufferTooSmall {
+            required: index + 1,
+            available: 0,
+        };
+        return Err(CharsetEncodeError::new(Charset::UTF_16, kind, index));
     }
     let length = Utf16::unit_len(ch);
     let available = output.len() - index;
     if available < length {
-        return Err(CharsetEncodeError::buffer_too_small(
-            Charset::UTF_16,
-            index,
-            index + length,
+        let kind = CharsetEncodeErrorKind::BufferTooSmall {
+            required: index + length,
             available,
-        ));
+        };
+        return Err(CharsetEncodeError::new(Charset::UTF_16, kind, index));
     }
     let code_point = ch as u32;
     if length == 1 {
@@ -239,7 +239,8 @@ pub(crate) fn decode_bytes_prefix(
 ///
 /// # Errors
 ///
-/// * `CharsetEncodeError::buffer_too_small` when output bytes from `index` are insufficient.
+/// * `CharsetEncodeErrorKind::BufferTooSmall` when output bytes from `index`
+///   are insufficient.
 pub(crate) fn encode_bytes_char(
     ch: char,
     output: &mut [u8],
@@ -248,22 +249,20 @@ pub(crate) fn encode_bytes_char(
 ) -> CharsetEncodeResult<usize> {
     let charset = Charset::from_utf16_byte_order(byte_order);
     if index > output.len() {
-        return Err(CharsetEncodeError::buffer_too_small(
-            charset,
-            index,
-            index + 2,
-            0,
-        ));
+        let kind = CharsetEncodeErrorKind::BufferTooSmall {
+            required: index + 2,
+            available: 0,
+        };
+        return Err(CharsetEncodeError::new(charset, kind, index));
     }
     let required = Utf16::unit_len(ch) * 2;
     let available = output.len() - index;
     if available < required {
-        return Err(CharsetEncodeError::buffer_too_small(
-            charset,
-            index,
-            index + required,
+        let kind = CharsetEncodeErrorKind::BufferTooSmall {
+            required: index + required,
             available,
-        ));
+        };
+        return Err(CharsetEncodeError::new(charset, kind, index));
     }
     let mut units = [0_u16; Utf16::MAX_UNITS_PER_CHAR];
     let unit_count = encode_units_char(ch, &mut units, 0)?;

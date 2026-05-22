@@ -13,6 +13,7 @@ use crate::{
     CharsetDecodeError,
     CharsetDecodeResult,
     CharsetEncodeError,
+    CharsetEncodeErrorKind,
     CharsetEncodeResult,
     DecodeStatus,
     Unicode,
@@ -127,21 +128,17 @@ impl CharsetCodec for Latin1Codec {
     #[inline]
     fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
         if index >= output.len() {
-            return Err(CharsetEncodeError::buffer_too_small(
-                Charset::ISO_8859_1,
-                index,
-                index + 1,
-                0,
-            ));
+            let kind = CharsetEncodeErrorKind::BufferTooSmall {
+                required: index + 1,
+                available: 0,
+            };
+            return Err(CharsetEncodeError::new(Charset::ISO_8859_1, kind, index));
         }
 
         let value = ch as u32;
         if value > Unicode::LATIN1_MAX {
-            return Err(CharsetEncodeError::unmappable_character(
-                Charset::ISO_8859_1,
-                index,
-                value,
-            ));
+            let kind = CharsetEncodeErrorKind::UnmappableCharacter { value };
+            return Err(CharsetEncodeError::new(Charset::ISO_8859_1, kind, index));
         }
 
         // Since we validated `value`, cast is safe for 0..=0xFF.

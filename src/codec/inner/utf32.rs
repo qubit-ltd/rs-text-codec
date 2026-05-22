@@ -13,6 +13,7 @@ use crate::{
     CharsetDecodeError,
     CharsetDecodeResult,
     CharsetEncodeError,
+    CharsetEncodeErrorKind,
     CharsetEncodeResult,
     DecodeStatus,
     Unicode,
@@ -80,19 +81,19 @@ pub(crate) fn decode_units_prefix(
 ///
 /// # Errors
 ///
-/// * `CharsetEncodeError::buffer_too_small` when no unit can be written at `index`.
+/// * `CharsetEncodeErrorKind::BufferTooSmall` when no unit can be written at
+///   `index`.
 pub(crate) fn encode_units_char(
     ch: char,
     output: &mut [u32],
     index: usize,
 ) -> CharsetEncodeResult<usize> {
     if index >= output.len() {
-        return Err(CharsetEncodeError::buffer_too_small(
-            Charset::UTF_32,
-            index,
-            index + 1,
-            0,
-        ));
+        let kind = CharsetEncodeErrorKind::BufferTooSmall {
+            required: index + 1,
+            available: 0,
+        };
+        return Err(CharsetEncodeError::new(Charset::UTF_32, kind, index));
     }
     output[index] = ch as u32;
     Ok(1)
@@ -158,7 +159,8 @@ pub(crate) fn decode_bytes_prefix(
 ///
 /// # Errors
 ///
-/// * `CharsetEncodeError::buffer_too_small` when output has fewer than four bytes from `index`.
+/// * `CharsetEncodeErrorKind::BufferTooSmall` when output has fewer than four
+///   bytes from `index`.
 pub(crate) fn encode_bytes_char(
     ch: char,
     output: &mut [u8],
@@ -167,22 +169,20 @@ pub(crate) fn encode_bytes_char(
 ) -> CharsetEncodeResult<usize> {
     let charset = Charset::from_utf32_byte_order(byte_order);
     if index > output.len() {
-        return Err(CharsetEncodeError::buffer_too_small(
-            charset,
-            index,
-            index + 4,
-            0,
-        ));
+        let kind = CharsetEncodeErrorKind::BufferTooSmall {
+            required: index + 4,
+            available: 0,
+        };
+        return Err(CharsetEncodeError::new(charset, kind, index));
     }
     let required = 4;
     let available = output.len() - index;
     if available < required {
-        return Err(CharsetEncodeError::buffer_too_small(
-            charset,
-            index,
-            index + required,
+        let kind = CharsetEncodeErrorKind::BufferTooSmall {
+            required: index + required,
             available,
-        ));
+        };
+        return Err(CharsetEncodeError::new(charset, kind, index));
     }
     output[index..index + 4].copy_from_slice(&byte_order.u32_bytes(ch as u32));
     Ok(4)

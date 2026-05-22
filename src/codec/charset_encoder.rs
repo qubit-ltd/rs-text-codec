@@ -7,6 +7,8 @@
  *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
+use core::fmt;
+
 use crate::{
     CharsetEncodeError,
     CharsetEncodeErrorKind,
@@ -31,7 +33,7 @@ use super::{
 ///
 /// - `C`: Low-level charset codec used to encode one character into target
 ///   storage units.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone)]
 pub struct CharsetEncoder<C>
 where
     C: CharsetCodec,
@@ -70,27 +72,28 @@ where
     /// by the codec, [`CharsetEncoder::DEFAULT_FALLBACK_REPLACEMENT`] is used.
     #[must_use]
     pub fn new(codec: C) -> Self {
-        match Self::encode_char_to_units(&codec, Self::DEFAULT_REPLACEMENT) {
-            Ok(replacement_units) => Self {
-                codec,
-                unmappable_action: UnmappableAction::Replace,
-                replacement: Self::DEFAULT_REPLACEMENT,
-                replacement_units,
-            },
+        let mut encoder = Self {
+            codec,
+            unmappable_action: UnmappableAction::Replace,
+            replacement: Self::DEFAULT_REPLACEMENT,
+            replacement_units: Vec::new(),
+        };
+        match encoder.encode_replacement(Self::DEFAULT_REPLACEMENT) {
+            Ok(replacement_units) => {
+                encoder.replacement = Self::DEFAULT_REPLACEMENT;
+                encoder.replacement_units = replacement_units;
+                encoder
+            }
             Err(default_error) => {
-                match Self::encode_char_to_units(
-                    &codec,
-                    Self::DEFAULT_FALLBACK_REPLACEMENT,
-                ) {
-                    Ok(replacement_units) => Self {
-                        codec,
-                        unmappable_action: UnmappableAction::Replace,
-                        replacement: Self::DEFAULT_FALLBACK_REPLACEMENT,
-                        replacement_units,
-                    },
+                match encoder.encode_replacement(Self::DEFAULT_FALLBACK_REPLACEMENT) {
+                    Ok(replacement_units) => {
+                        encoder.replacement = Self::DEFAULT_FALLBACK_REPLACEMENT;
+                        encoder.replacement_units = replacement_units;
+                        encoder
+                    }
                     Err(_) => panic!(
                         "cannot initialize CharsetEncoder for {:?}: neither {:?} nor {:?} is encodable ({default_error})",
-                        codec.charset(),
+                        encoder.codec.charset(),
                         Self::DEFAULT_REPLACEMENT,
                         Self::DEFAULT_FALLBACK_REPLACEMENT,
                     ),
@@ -114,7 +117,7 @@ where
     /// - `Err(Self::Error)` when the replacement is unsupported.
     #[inline]
     pub fn with_replacement(mut self, replacement: char) -> Result<Self, CharsetEncodeError> {
-        let replacement_units = Self::encode_char_to_units(&self.codec, replacement)?;
+        let replacement_units = self.encode_replacement(replacement)?;
         self.replacement = replacement;
         self.replacement_units = replacement_units;
         Ok(self)
@@ -185,53 +188,120 @@ where
     /// Returns `Err` when the codec cannot encode the given replacement.
     #[inline]
     pub fn set_replacement(&mut self, replacement: char) -> Result<(), CharsetEncodeError> {
-        let replacement_units = Self::encode_char_to_units(&self.codec, replacement)?;
+        let replacement_units = self.encode_replacement(replacement)?;
         self.replacement = replacement;
         self.replacement_units = replacement_units;
         Ok(())
     }
 
-    /// Encodes a single Unicode scalar value into a newly allocated unit buffer.
-    ///
-    /// This helper is used for replacement-character validation and caching so
-    /// replacement bytes are encoded once during configuration.
+    /// Encodes a replacement character into a temporary buffer and returns the
+    /// encoded unit sequence.
     ///
     /// # Parameters
     ///
-    /// - `codec`: Target codec used for encoding.
-    /// - `ch`: Character to encode.
+    /// - `ch`: Replacement character to validate and encode.
     ///
     /// # Returns
     ///
-    /// - `Ok(Vec<C::Unit>)` containing exactly the encoded units.
-    /// - `Err(Self::Error)` when encoding fails.
+    /// - `Ok(Vec<C::Unit>)` when the character is encodable.
+    /// - `Err(CharsetEncodeError)` with codec-specific context when encoding fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the target charset cannot encode the character.
+    #[inline]
+    fn encode_replacement(&self, ch: char) -> CharsetEncodeResult<Vec<C::Unit>> {
+        let mut output = vec![C::Unit::default(); self.codec.max_units_per_char().max(1)];
+        let written =
+            self.encode_char_to_units(ch, output.as_mut_slice(), 0, |_, _, error| Err(error))?;
+        output.truncate(written);
+        Ok(output)
+    }
+
+    /// Encodes a single Unicode scalar value into the caller-provided unit buffer.
+    ///
+    /// This is the common template around [`CharsetCodec::encode_one`]. It
+    /// keeps all direct codec error inspection in one place while allowing the
+    /// caller to decide how an unmappable character should be handled.
+    ///
+    /// # Parameters
+    ///
+    /// - `ch`: Character to encode.
+    /// - `output`: Target unit buffer to write into.
+    /// - `output_index`: Start position in `output` to write the encoded units.
+    /// - `on_unmappable`: Handler called when the codec reports
+    ///   [`CharsetEncodeErrorKind::UnmappableCharacter`].
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(usize)` of how many units were written.
+    /// - `Err(CharsetEncodeError)` when encoding fails.
     ///
     /// # Errors
     ///
     /// - `CharsetEncodeError` if the codec cannot encode the character.
     fn encode_char_to_units(
-        codec: &C,
+        &self,
         ch: char,
-    ) -> CharsetEncodeResult<Vec<C::Unit>> {
-        let mut output = vec![C::Unit::default(); codec.max_units_per_char().max(1)];
-        match codec.encode_one(ch, output.as_mut_slice(), 0) {
-            Ok(written) => {
-                output.truncate(written);
-                Ok(output)
-            }
+        output: &mut [C::Unit],
+        output_index: usize,
+        on_unmappable: impl FnOnce(
+            &mut [C::Unit],
+            usize,
+            CharsetEncodeError,
+        ) -> CharsetEncodeResult<usize>,
+    ) -> CharsetEncodeResult<usize> {
+        match self.codec.encode_one(ch, output, output_index) {
+            Ok(written) => Ok(written),
             Err(error) => match error.kind() {
-                CharsetEncodeErrorKind::UnmappableCharacter { value } => {
-                    Err(CharsetEncodeError::unmappable_character(
-                        codec.charset(),
-                        error.index(),
-                        value,
-                    ))
+                CharsetEncodeErrorKind::UnmappableCharacter { .. } => {
+                    on_unmappable(output, output_index, error)
                 }
                 CharsetEncodeErrorKind::BufferTooSmall { .. }
                 | CharsetEncodeErrorKind::InvalidInputIndex { .. }
                 | CharsetEncodeErrorKind::InvalidCodePoint { .. } => Err(error),
             },
         }
+    }
+
+    /// Writes the cached replacement units into the target output slice.
+    ///
+    /// # Parameters
+    ///
+    /// - `output`: Complete target output slice.
+    /// - `output_index`: Absolute output index where replacement writing starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns the number of output units written for the replacement.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CharsetEncodeError`] when the output buffer is too small.
+    #[inline]
+    fn write_replacement(
+        &self,
+        output: &mut [C::Unit],
+        output_index: usize,
+    ) -> CharsetEncodeResult<usize> {
+        let available = output.len().saturating_sub(output_index);
+        if available < self.replacement_units.len() {
+            let kind = CharsetEncodeErrorKind::BufferTooSmall {
+                required: output_index + self.replacement_units.len(),
+                available,
+            };
+            return Err(CharsetEncodeError::new(
+                self.codec.charset(),
+                kind,
+                output_index,
+            ));
+        }
+        if self.replacement_units.is_empty() {
+            return Ok(0);
+        }
+        let end = output_index + self.replacement_units.len();
+        output[output_index..end].copy_from_slice(&self.replacement_units[..]);
+        Ok(self.replacement_units.len())
     }
 }
 
@@ -256,10 +326,13 @@ where
         output_index: usize,
     ) -> Result<CoderProgress, Self::Error> {
         if input_index > input.len() {
-            return Err(CharsetEncodeError::invalid_input_index_with_len(
+            let kind = CharsetEncodeErrorKind::InvalidInputIndex {
+                input_len: input.len(),
+            };
+            return Err(CharsetEncodeError::new(
                 self.codec.charset(),
+                kind,
                 input_index,
-                input.len(),
             ));
         }
         if output_index > output.len() {
@@ -275,7 +348,20 @@ where
         let mut output_cursor = output_index;
         while input_cursor < input.len() {
             let ch = input[input_cursor];
-            match self.codec.encode_one(ch, output, output_cursor) {
+            match self.encode_char_to_units(ch, output, output_cursor, |output, output_index, _| {
+                match self.unmappable_action {
+                    UnmappableAction::Report => {
+                        let kind = CharsetEncodeErrorKind::UnmappableCharacter { value: ch as u32 };
+                        Err(CharsetEncodeError::new(
+                            self.codec.charset(),
+                            kind,
+                            input_cursor,
+                        ))
+                    }
+                    UnmappableAction::Ignore => Ok(0),
+                    UnmappableAction::Replace => self.write_replacement(output, output_index),
+                }
+            }) {
                 Ok(written) => {
                     input_cursor += 1;
                     output_cursor += written;
@@ -299,55 +385,6 @@ where
                         output_cursor - output_index,
                     ));
                 }
-                Err(error)
-                    if matches!(
-                        error.kind(),
-                        CharsetEncodeErrorKind::UnmappableCharacter { value: _ }
-                    ) =>
-                {
-                    match self.unmappable_action {
-                        UnmappableAction::Report => {
-                            return Err(CharsetEncodeError::unmappable_character(
-                                self.codec.charset(),
-                                input_cursor,
-                                ch as u32,
-                            ));
-                        }
-                        UnmappableAction::Ignore => {
-                            input_cursor += 1;
-                        }
-                        UnmappableAction::Replace => {
-                            let written = match self.write_replacement(output, output_cursor) {
-                                Ok(written) => written,
-                                Err(error)
-                                    if matches!(
-                                        error.kind(),
-                                        CharsetEncodeErrorKind::BufferTooSmall { .. }
-                                    ) =>
-                                {
-                                    let required = error
-                                        .required()
-                                        .unwrap_or(output_cursor + 1)
-                                        .saturating_sub(output_cursor);
-                                    let available = error.available().unwrap_or(0);
-                                    let status = CoderStatus::NeedOutput {
-                                        output_index: output_cursor,
-                                        required,
-                                        available,
-                                    };
-                                    return Ok(CoderProgress::new(
-                                        status,
-                                        input_cursor - input_index,
-                                        output_cursor - output_index,
-                                    ));
-                                }
-                                Err(error) => return Err(error),
-                            };
-                            input_cursor += 1;
-                            output_cursor += written;
-                        }
-                    }
-                }
                 Err(error) => {
                     return Err(error);
                 }
@@ -360,44 +397,31 @@ where
     }
 }
 
-impl<C> CharsetEncoder<C>
+impl<C> Eq for CharsetEncoder<C> where C: CharsetCodec + Eq {}
+
+impl<C> PartialEq for CharsetEncoder<C>
 where
-    C: CharsetCodec,
+    C: CharsetCodec + PartialEq,
 {
-    /// Writes the cached replacement units into the target output slice.
-    ///
-    /// # Parameters
-    ///
-    /// - `output`: Complete target output slice.
-    /// - `output_index`: Absolute output index where replacement writing starts.
-    ///
-    /// # Returns
-    ///
-    /// Returns the number of output units written for the replacement.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`CharsetEncodeError`] when the output buffer is too small.
-    #[inline]
-    fn write_replacement(
-        &self,
-        output: &mut [C::Unit],
-        output_index: usize,
-    ) -> CharsetEncodeResult<usize> {
-        let available = output.len().saturating_sub(output_index);
-        if available < self.replacement_units.len() {
-            return Err(CharsetEncodeError::buffer_too_small(
-                self.codec.charset(),
-                output_index,
-                output_index + self.replacement_units.len(),
-                available,
-            ));
-        }
-        if self.replacement_units.is_empty() {
-            return Ok(0);
-        }
-        let end = output_index + self.replacement_units.len();
-        output[output_index..end].copy_from_slice(&self.replacement_units[..]);
-        Ok(self.replacement_units.len())
+    /// Compares encoder configuration without leaking cached-unit trait bounds.
+    fn eq(&self, other: &Self) -> bool {
+        self.codec == other.codec
+            && self.unmappable_action == other.unmappable_action
+            && self.replacement == other.replacement
+    }
+}
+
+impl<C> fmt::Debug for CharsetEncoder<C>
+where
+    C: CharsetCodec + fmt::Debug,
+{
+    /// Formats the encoder without exposing additional bounds for cached units.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CharsetEncoder")
+            .field("codec", &self.codec)
+            .field("unmappable_action", &self.unmappable_action)
+            .field("replacement", &self.replacement)
+            .field("replacement_units_len", &self.replacement_units.len())
+            .finish()
     }
 }
