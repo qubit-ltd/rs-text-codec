@@ -63,6 +63,7 @@ pub use error::{
     CharsetEncodeResult,
 };
 pub use io::{
+    BinaryCodec,
     ByteOrder,
     Coder,
     CoderProgress,

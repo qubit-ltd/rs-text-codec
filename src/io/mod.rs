@@ -17,6 +17,7 @@ pub mod coding;
 
 pub use byte_order::ByteOrder;
 pub use coding::{
+    BinaryCodec,
     Coder,
     CoderProgress,
     CoderStatus,

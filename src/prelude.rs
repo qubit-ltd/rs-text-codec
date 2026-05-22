@@ -12,6 +12,7 @@
 pub use crate::{
     Ascii,
     AsciiCodec,
+    BinaryCodec,
     ByteOrder,
     Charset,
     CharsetCodec,

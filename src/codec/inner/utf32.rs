@@ -8,6 +8,7 @@
  *
  ***************************************************************************/
 use crate::{
+    BinaryCodec,
     ByteOrder,
     Charset,
     CharsetDecodeError,
@@ -129,8 +130,9 @@ pub(crate) fn decode_bytes_prefix(
             available,
         });
     }
+    let binary_codec = BinaryCodec::new(byte_order);
     // SAFETY: The length check above guarantees that `index..index + 4` is in bounds.
-    let unit = unsafe { byte_order.read_u32_at_unchecked(input, index) };
+    let unit = unsafe { binary_codec.read_u32_at_unchecked(input, index) };
     match Unicode::to_char(unit) {
         Some(ch) => Ok(DecodeStatus::Complete {
             value: ch,
@@ -169,7 +171,8 @@ pub(crate) fn encode_bytes_char(
     if output.len() - index < 4 {
         return Err(CharsetEncodeError::buffer_too_small(charset, output.len()));
     }
+    let binary_codec = BinaryCodec::new(byte_order);
     // SAFETY: The capacity check above guarantees that `index..index + 4` is in bounds.
-    unsafe { byte_order.write_u32_at_unchecked(output, index, ch as u32) };
+    unsafe { binary_codec.write_u32_at_unchecked(output, index, ch as u32) };
     Ok(4)
 }

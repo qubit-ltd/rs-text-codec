@@ -8,6 +8,7 @@
  *
  ***************************************************************************/
 use crate::{
+    BinaryCodec,
     ByteOrder,
     Charset,
     CharsetDecodeError,
@@ -178,8 +179,9 @@ pub(crate) fn decode_bytes_prefix(
             available,
         });
     }
+    let binary_codec = BinaryCodec::new(byte_order);
     // SAFETY: The length check above guarantees that `index..index + 2` is in bounds.
-    let first = unsafe { byte_order.read_u16_at_unchecked(input, index) };
+    let first = unsafe { binary_codec.read_u16_at_unchecked(input, index) };
     if Utf16::is_high_surrogate(first) {
         if available < 4 {
             return Ok(DecodeStatus::NeedMore {
@@ -188,7 +190,7 @@ pub(crate) fn decode_bytes_prefix(
             });
         }
         // SAFETY: The `available < 4` check above guarantees this two-byte range is in bounds.
-        let second = unsafe { byte_order.read_u16_at_unchecked(input, index + 2) };
+        let second = unsafe { binary_codec.read_u16_at_unchecked(input, index + 2) };
         match Utf16::compose_pair(first, second).and_then(Unicode::to_char) {
             Some(ch) => Ok(DecodeStatus::Complete {
                 value: ch,
@@ -243,10 +245,11 @@ pub(crate) fn encode_bytes_char(
     }
     let mut units = [0_u16; Utf16::MAX_UNITS_PER_CHAR];
     let unit_count = encode_units_char(ch, &mut units, 0)?;
+    let binary_codec = BinaryCodec::new(byte_order);
     for (unit_index, unit) in units.iter().take(unit_count).enumerate() {
         let offset = index + unit_index * 2;
         // SAFETY: The capacity check above guarantees every two-byte unit write is in bounds.
-        unsafe { byte_order.write_u16_at_unchecked(output, offset, *unit) };
+        unsafe { binary_codec.write_u16_at_unchecked(output, offset, *unit) };
     }
     Ok(required)
 }
