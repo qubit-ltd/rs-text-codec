@@ -15,7 +15,9 @@ use crate::{
 /// Buffer-level codec for ZigZag signed integers.
 ///
 /// ZigZag maps signed integers to unsigned integers before writing the payload
-/// as unsigned LEB128. This keeps small negative values compact.
+/// as unsigned LEB128. This keeps small negative values compact. The strict
+/// setting is delegated to the underlying LEB128 reader and controls whether
+/// non-canonical LEB128 payloads are rejected during decoding.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ZigZagCodec {
     leb128: Leb128Codec,
@@ -23,6 +25,10 @@ pub struct ZigZagCodec {
 
 impl ZigZagCodec {
     /// Creates a non-strict ZigZag codec.
+    ///
+    /// # Returns
+    ///
+    /// Returns a codec that accepts non-canonical LEB128 payloads when decoding.
     #[inline]
     pub const fn new() -> Self {
         Self {
@@ -35,6 +41,10 @@ impl ZigZagCodec {
     /// # Parameters
     ///
     /// - `strict`: Whether to reject non-canonical LEB128 payloads.
+    ///
+    /// # Returns
+    ///
+    /// Returns a codec configured with the supplied strictness policy.
     #[inline]
     pub const fn with_strict(strict: bool) -> Self {
         Self {
@@ -43,6 +53,10 @@ impl ZigZagCodec {
     }
 
     /// Reports whether strict canonical decoding is enabled.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` when decode methods reject non-canonical LEB128 payloads.
     #[must_use]
     #[inline]
     pub const fn strict(self) -> bool {
@@ -50,12 +64,25 @@ impl ZigZagCodec {
     }
 
     /// Updates the LEB128 canonical decoding policy.
+    ///
+    /// # Parameters
+    ///
+    /// - `strict`: Whether subsequent reads should reject non-canonical LEB128
+    ///   payloads.
     #[inline]
     pub fn set_strict(&mut self, strict: bool) {
         self.leb128.set_strict(strict);
     }
 
     /// Encodes an `i16` value into its ZigZag `u16` representation.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Signed value to transform.
+    ///
+    /// # Returns
+    ///
+    /// Returns the unsigned ZigZag representation.
     #[must_use]
     #[inline]
     pub const fn encode_i16(value: i16) -> u16 {
@@ -63,6 +90,14 @@ impl ZigZagCodec {
     }
 
     /// Decodes a ZigZag `u16` value into `i16`.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Unsigned ZigZag representation.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded signed value.
     #[must_use]
     #[inline]
     pub const fn decode_u16(value: u16) -> i16 {
@@ -70,6 +105,14 @@ impl ZigZagCodec {
     }
 
     /// Encodes an `i32` value into its ZigZag `u32` representation.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Signed value to transform.
+    ///
+    /// # Returns
+    ///
+    /// Returns the unsigned ZigZag representation.
     #[must_use]
     #[inline]
     pub const fn encode_i32(value: i32) -> u32 {
@@ -77,6 +120,14 @@ impl ZigZagCodec {
     }
 
     /// Decodes a ZigZag `u32` value into `i32`.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Unsigned ZigZag representation.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded signed value.
     #[must_use]
     #[inline]
     pub const fn decode_u32(value: u32) -> i32 {
@@ -84,6 +135,14 @@ impl ZigZagCodec {
     }
 
     /// Encodes an `i64` value into its ZigZag `u64` representation.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Signed value to transform.
+    ///
+    /// # Returns
+    ///
+    /// Returns the unsigned ZigZag representation.
     #[must_use]
     #[inline]
     pub const fn encode_i64(value: i64) -> u64 {
@@ -91,6 +150,14 @@ impl ZigZagCodec {
     }
 
     /// Decodes a ZigZag `u64` value into `i64`.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Unsigned ZigZag representation.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded signed value.
     #[must_use]
     #[inline]
     pub const fn decode_u64(value: u64) -> i64 {
@@ -98,6 +165,14 @@ impl ZigZagCodec {
     }
 
     /// Encodes an `i128` value into its ZigZag `u128` representation.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Signed value to transform.
+    ///
+    /// # Returns
+    ///
+    /// Returns the unsigned ZigZag representation.
     #[must_use]
     #[inline]
     pub const fn encode_i128(value: i128) -> u128 {
@@ -105,6 +180,14 @@ impl ZigZagCodec {
     }
 
     /// Decodes a ZigZag `u128` value into `i128`.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Unsigned ZigZag representation.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded signed value.
     #[must_use]
     #[inline]
     pub const fn decode_u128(value: u128) -> i128 {
@@ -113,9 +196,18 @@ impl ZigZagCodec {
 
     /// Reads an `i16` value from a three-byte maximum-width array.
     ///
+    /// # Parameters
+    ///
+    /// - `input`: A maximum-width ZigZag LEB128 buffer for an `i16` value.
+    ///
     /// # Returns
     ///
     /// Returns the decoded value and the number of bytes consumed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Leb128DecodeError`] if the underlying LEB128 payload is
+    /// malformed or, when strict mode is enabled, non-canonical.
     #[inline]
     pub fn read_i16_from_array(self, input: [u8; 3]) -> Result<(i16, usize), Leb128DecodeError> {
         self.leb128
@@ -124,6 +216,19 @@ impl ZigZagCodec {
     }
 
     /// Reads an `i32` value from a five-byte maximum-width array.
+    ///
+    /// # Parameters
+    ///
+    /// - `input`: A maximum-width ZigZag LEB128 buffer for an `i32` value.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded value and the number of bytes consumed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Leb128DecodeError`] if the underlying LEB128 payload is
+    /// malformed or, when strict mode is enabled, non-canonical.
     #[inline]
     pub fn read_i32_from_array(self, input: [u8; 5]) -> Result<(i32, usize), Leb128DecodeError> {
         self.leb128
@@ -132,6 +237,19 @@ impl ZigZagCodec {
     }
 
     /// Reads an `i64` value from a ten-byte maximum-width array.
+    ///
+    /// # Parameters
+    ///
+    /// - `input`: A maximum-width ZigZag LEB128 buffer for an `i64` value.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded value and the number of bytes consumed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Leb128DecodeError`] if the underlying LEB128 payload is
+    /// malformed or, when strict mode is enabled, non-canonical.
     #[inline]
     pub fn read_i64_from_array(self, input: [u8; 10]) -> Result<(i64, usize), Leb128DecodeError> {
         self.leb128
@@ -140,6 +258,19 @@ impl ZigZagCodec {
     }
 
     /// Reads an `i128` value from a nineteen-byte maximum-width array.
+    ///
+    /// # Parameters
+    ///
+    /// - `input`: A maximum-width ZigZag LEB128 buffer for an `i128` value.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded value and the number of bytes consumed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Leb128DecodeError`] if the underlying LEB128 payload is
+    /// malformed or, when strict mode is enabled, non-canonical.
     #[inline]
     pub fn read_i128_from_array(self, input: [u8; 19]) -> Result<(i128, usize), Leb128DecodeError> {
         self.leb128
@@ -148,6 +279,23 @@ impl ZigZagCodec {
     }
 
     /// Reads a ZigZag encoded `i16` at `index`.
+    ///
+    /// # Parameters
+    ///
+    /// - `input`: Source byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Some((value, consumed)))` for a complete value, `Ok(None)`
+    /// when the slice ends before the value is complete, and `Err` for malformed
+    /// or non-canonical input.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Leb128DecodeError`] when `index` is out of range, the LEB128
+    /// payload exceeds the `i16` ZigZag width, or strict mode rejects a
+    /// non-canonical payload.
     #[inline]
     pub fn read_i16_at(
         self,
@@ -160,6 +308,23 @@ impl ZigZagCodec {
     }
 
     /// Reads a ZigZag encoded `i32` at `index`.
+    ///
+    /// # Parameters
+    ///
+    /// - `input`: Source byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Some((value, consumed)))` for a complete value, `Ok(None)`
+    /// when the slice ends before the value is complete, and `Err` for malformed
+    /// or non-canonical input.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Leb128DecodeError`] when `index` is out of range, the LEB128
+    /// payload exceeds the `i32` ZigZag width, or strict mode rejects a
+    /// non-canonical payload.
     #[inline]
     pub fn read_i32_at(
         self,
@@ -172,6 +337,23 @@ impl ZigZagCodec {
     }
 
     /// Reads a ZigZag encoded `i64` at `index`.
+    ///
+    /// # Parameters
+    ///
+    /// - `input`: Source byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Some((value, consumed)))` for a complete value, `Ok(None)`
+    /// when the slice ends before the value is complete, and `Err` for malformed
+    /// or non-canonical input.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Leb128DecodeError`] when `index` is out of range, the LEB128
+    /// payload exceeds the `i64` ZigZag width, or strict mode rejects a
+    /// non-canonical payload.
     #[inline]
     pub fn read_i64_at(
         self,
@@ -184,6 +366,23 @@ impl ZigZagCodec {
     }
 
     /// Reads a ZigZag encoded `i128` at `index`.
+    ///
+    /// # Parameters
+    ///
+    /// - `input`: Source byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Some((value, consumed)))` for a complete value, `Ok(None)`
+    /// when the slice ends before the value is complete, and `Err` for malformed
+    /// or non-canonical input.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Leb128DecodeError`] when `index` is out of range, the LEB128
+    /// payload exceeds the `i128` ZigZag width, or strict mode rejects a
+    /// non-canonical payload.
     #[inline]
     pub fn read_i128_at(
         self,
@@ -196,6 +395,20 @@ impl ZigZagCodec {
     }
 
     /// Reads an `i16` value at `index` without checking slice bounds.
+    ///
+    /// # Parameters
+    ///
+    /// - `input`: Source byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded value and the number of bytes consumed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Leb128DecodeError`] when the validated range contains a
+    /// malformed LEB128 payload or, in strict mode, a non-canonical payload.
     ///
     /// # Safety
     ///
@@ -214,6 +427,20 @@ impl ZigZagCodec {
 
     /// Reads an `i32` value at `index` without checking slice bounds.
     ///
+    /// # Parameters
+    ///
+    /// - `input`: Source byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded value and the number of bytes consumed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Leb128DecodeError`] when the validated range contains a
+    /// malformed LEB128 payload or, in strict mode, a non-canonical payload.
+    ///
     /// # Safety
     ///
     /// The caller must guarantee that `index..index + 5` is in bounds for
@@ -230,6 +457,20 @@ impl ZigZagCodec {
     }
 
     /// Reads an `i64` value at `index` without checking slice bounds.
+    ///
+    /// # Parameters
+    ///
+    /// - `input`: Source byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded value and the number of bytes consumed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Leb128DecodeError`] when the validated range contains a
+    /// malformed LEB128 payload or, in strict mode, a non-canonical payload.
     ///
     /// # Safety
     ///
@@ -248,6 +489,20 @@ impl ZigZagCodec {
 
     /// Reads an `i128` value at `index` without checking slice bounds.
     ///
+    /// # Parameters
+    ///
+    /// - `input`: Source byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded value and the number of bytes consumed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Leb128DecodeError`] when the validated range contains a
+    /// malformed LEB128 payload or, in strict mode, a non-canonical payload.
+    ///
     /// # Safety
     ///
     /// The caller must guarantee that `index..index + 19` is in bounds for
@@ -264,6 +519,14 @@ impl ZigZagCodec {
     }
 
     /// Encodes an `i16` value into a three-byte maximum-width array.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Signed value to encode through ZigZag and unsigned LEB128.
+    ///
+    /// # Returns
+    ///
+    /// Returns the maximum-width array and the number of initialized bytes.
     #[must_use]
     #[inline]
     pub fn i16_bytes(self, value: i16) -> ([u8; 3], usize) {
@@ -271,6 +534,14 @@ impl ZigZagCodec {
     }
 
     /// Encodes an `i32` value into a five-byte maximum-width array.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Signed value to encode through ZigZag and unsigned LEB128.
+    ///
+    /// # Returns
+    ///
+    /// Returns the maximum-width array and the number of initialized bytes.
     #[must_use]
     #[inline]
     pub fn i32_bytes(self, value: i32) -> ([u8; 5], usize) {
@@ -278,6 +549,14 @@ impl ZigZagCodec {
     }
 
     /// Encodes an `i64` value into a ten-byte maximum-width array.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Signed value to encode through ZigZag and unsigned LEB128.
+    ///
+    /// # Returns
+    ///
+    /// Returns the maximum-width array and the number of initialized bytes.
     #[must_use]
     #[inline]
     pub fn i64_bytes(self, value: i64) -> ([u8; 10], usize) {
@@ -285,6 +564,14 @@ impl ZigZagCodec {
     }
 
     /// Encodes an `i128` value into a nineteen-byte maximum-width array.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Signed value to encode through ZigZag and unsigned LEB128.
+    ///
+    /// # Returns
+    ///
+    /// Returns the maximum-width array and the number of initialized bytes.
     #[must_use]
     #[inline]
     pub fn i128_bytes(self, value: i128) -> ([u8; 19], usize) {
@@ -292,6 +579,18 @@ impl ZigZagCodec {
     }
 
     /// Writes a ZigZag encoded `i16` at `index`.
+    ///
+    /// # Parameters
+    ///
+    /// - `output`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    /// - `value`: Signed value to encode through ZigZag and unsigned LEB128.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(consumed)` with the number of bytes written when the
+    /// destination has enough capacity. Returns `None` when `index` is out of
+    /// bounds or the encoded value would not fit.
     #[inline]
     pub fn write_i16_at(self, output: &mut [u8], index: usize, value: i16) -> Option<usize> {
         self.leb128
@@ -299,6 +598,18 @@ impl ZigZagCodec {
     }
 
     /// Writes a ZigZag encoded `i32` at `index`.
+    ///
+    /// # Parameters
+    ///
+    /// - `output`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    /// - `value`: Signed value to encode through ZigZag and unsigned LEB128.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(consumed)` with the number of bytes written when the
+    /// destination has enough capacity. Returns `None` when `index` is out of
+    /// bounds or the encoded value would not fit.
     #[inline]
     pub fn write_i32_at(self, output: &mut [u8], index: usize, value: i32) -> Option<usize> {
         self.leb128
@@ -306,6 +617,18 @@ impl ZigZagCodec {
     }
 
     /// Writes a ZigZag encoded `i64` at `index`.
+    ///
+    /// # Parameters
+    ///
+    /// - `output`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    /// - `value`: Signed value to encode through ZigZag and unsigned LEB128.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(consumed)` with the number of bytes written when the
+    /// destination has enough capacity. Returns `None` when `index` is out of
+    /// bounds or the encoded value would not fit.
     #[inline]
     pub fn write_i64_at(self, output: &mut [u8], index: usize, value: i64) -> Option<usize> {
         self.leb128
@@ -313,6 +636,18 @@ impl ZigZagCodec {
     }
 
     /// Writes a ZigZag encoded `i128` at `index`.
+    ///
+    /// # Parameters
+    ///
+    /// - `output`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    /// - `value`: Signed value to encode through ZigZag and unsigned LEB128.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(consumed)` with the number of bytes written when the
+    /// destination has enough capacity. Returns `None` when `index` is out of
+    /// bounds or the encoded value would not fit.
     #[inline]
     pub fn write_i128_at(self, output: &mut [u8], index: usize, value: i128) -> Option<usize> {
         self.leb128
@@ -320,6 +655,16 @@ impl ZigZagCodec {
     }
 
     /// Writes an `i16` value at `index` without checking destination bounds.
+    ///
+    /// # Parameters
+    ///
+    /// - `output`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    /// - `value`: Signed value to encode through ZigZag and unsigned LEB128.
+    ///
+    /// # Returns
+    ///
+    /// Returns the number of bytes written.
     ///
     /// # Safety
     ///
@@ -341,6 +686,16 @@ impl ZigZagCodec {
 
     /// Writes an `i32` value at `index` without checking destination bounds.
     ///
+    /// # Parameters
+    ///
+    /// - `output`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    /// - `value`: Signed value to encode through ZigZag and unsigned LEB128.
+    ///
+    /// # Returns
+    ///
+    /// Returns the number of bytes written.
+    ///
     /// # Safety
     ///
     /// The caller must guarantee that `index..index + 5` is in bounds for
@@ -361,6 +716,16 @@ impl ZigZagCodec {
 
     /// Writes an `i64` value at `index` without checking destination bounds.
     ///
+    /// # Parameters
+    ///
+    /// - `output`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    /// - `value`: Signed value to encode through ZigZag and unsigned LEB128.
+    ///
+    /// # Returns
+    ///
+    /// Returns the number of bytes written.
+    ///
     /// # Safety
     ///
     /// The caller must guarantee that `index..index + 10` is in bounds for
@@ -380,6 +745,16 @@ impl ZigZagCodec {
     }
 
     /// Writes an `i128` value at `index` without checking destination bounds.
+    ///
+    /// # Parameters
+    ///
+    /// - `output`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the encoded value starts.
+    /// - `value`: Signed value to encode through ZigZag and unsigned LEB128.
+    ///
+    /// # Returns
+    ///
+    /// Returns the number of bytes written.
     ///
     /// # Safety
     ///

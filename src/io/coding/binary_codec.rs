@@ -481,6 +481,15 @@ impl BinaryCodec {
 
     /// Reads an `i32` value at `index` without checking slice bounds.
     ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Source byte slice.
+    /// - `index`: Absolute byte offset where the four-byte value starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded `i32` value.
+    ///
     /// # Safety
     ///
     /// The caller must guarantee that `index..index + 4` is in bounds for
@@ -494,6 +503,15 @@ impl BinaryCodec {
 
     /// Reads an `i64` value at `index` without checking slice bounds.
     ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Source byte slice.
+    /// - `index`: Absolute byte offset where the eight-byte value starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded `i64` value.
+    ///
     /// # Safety
     ///
     /// The caller must guarantee that `index..index + 8` is in bounds for
@@ -506,6 +524,15 @@ impl BinaryCodec {
     }
 
     /// Reads a `u128` value at `index` without checking slice bounds.
+    ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Source byte slice.
+    /// - `index`: Absolute byte offset where the sixteen-byte value starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded `u128` value.
     ///
     /// # Safety
     ///
@@ -521,6 +548,15 @@ impl BinaryCodec {
     }
 
     /// Reads an `i128` value at `index` without checking slice bounds.
+    ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Source byte slice.
+    /// - `index`: Absolute byte offset where the sixteen-byte value starts.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded `i128` value.
     ///
     /// # Safety
     ///
@@ -594,6 +630,14 @@ impl BinaryCodec {
     }
 
     /// Converts an `i16` value to bytes using this codec's byte order.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: The value to serialize.
+    ///
+    /// # Returns
+    ///
+    /// Returns two bytes in this codec's byte order.
     #[inline]
     pub const fn i16_bytes(self, value: i16) -> [u8; 2] {
         match self.byte_order {
@@ -603,6 +647,14 @@ impl BinaryCodec {
     }
 
     /// Converts an `i32` value to bytes using this codec's byte order.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: The value to serialize.
+    ///
+    /// # Returns
+    ///
+    /// Returns four bytes in this codec's byte order.
     #[inline]
     pub const fn i32_bytes(self, value: i32) -> [u8; 4] {
         match self.byte_order {
@@ -612,6 +664,14 @@ impl BinaryCodec {
     }
 
     /// Converts an `i64` value to bytes using this codec's byte order.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: The value to serialize.
+    ///
+    /// # Returns
+    ///
+    /// Returns eight bytes in this codec's byte order.
     #[inline]
     pub const fn i64_bytes(self, value: i64) -> [u8; 8] {
         match self.byte_order {
@@ -621,6 +681,14 @@ impl BinaryCodec {
     }
 
     /// Converts a `u128` value to bytes using this codec's byte order.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: The value to serialize.
+    ///
+    /// # Returns
+    ///
+    /// Returns sixteen bytes in this codec's byte order.
     #[inline]
     pub const fn u128_bytes(self, value: u128) -> [u8; 16] {
         match self.byte_order {
@@ -630,6 +698,14 @@ impl BinaryCodec {
     }
 
     /// Converts an `i128` value to bytes using this codec's byte order.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: The value to serialize.
+    ///
+    /// # Returns
+    ///
+    /// Returns sixteen bytes in this codec's byte order.
     #[inline]
     pub const fn i128_bytes(self, value: i128) -> [u8; 16] {
         match self.byte_order {
@@ -706,6 +782,12 @@ impl BinaryCodec {
 
     /// Writes an `i16` value at `index` into a byte slice.
     ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the two-byte value starts.
+    /// - `value`: The value to serialize.
+    ///
     /// # Returns
     ///
     /// Returns `Some(())` when the destination has enough space, or `None` when
@@ -718,6 +800,12 @@ impl BinaryCodec {
     }
 
     /// Writes an `i32` value at `index` into a byte slice.
+    ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the four-byte value starts.
+    /// - `value`: The value to serialize.
     ///
     /// # Returns
     ///
@@ -732,6 +820,12 @@ impl BinaryCodec {
 
     /// Writes an `i64` value at `index` into a byte slice.
     ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the eight-byte value starts.
+    /// - `value`: The value to serialize.
+    ///
     /// # Returns
     ///
     /// Returns `Some(())` when the destination has enough space, or `None` when
@@ -745,6 +839,12 @@ impl BinaryCodec {
 
     /// Writes a `u128` value at `index` into a byte slice.
     ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the sixteen-byte value starts.
+    /// - `value`: The value to serialize.
+    ///
     /// # Returns
     ///
     /// Returns `Some(())` when the destination has enough space, or `None` when
@@ -757,6 +857,12 @@ impl BinaryCodec {
     }
 
     /// Writes an `i128` value at `index` into a byte slice.
+    ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the sixteen-byte value starts.
+    /// - `value`: The value to serialize.
     ///
     /// # Returns
     ///
@@ -843,6 +949,12 @@ impl BinaryCodec {
 
     /// Writes an `i16` value at `index` without checking slice bounds.
     ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the two-byte value starts.
+    /// - `value`: The value to serialize.
+    ///
     /// # Safety
     ///
     /// The caller must guarantee that `index..index + 2` is in bounds for
@@ -854,6 +966,12 @@ impl BinaryCodec {
     }
 
     /// Writes an `i32` value at `index` without checking slice bounds.
+    ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the four-byte value starts.
+    /// - `value`: The value to serialize.
     ///
     /// # Safety
     ///
@@ -867,6 +985,12 @@ impl BinaryCodec {
 
     /// Writes an `i64` value at `index` without checking slice bounds.
     ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the eight-byte value starts.
+    /// - `value`: The value to serialize.
+    ///
     /// # Safety
     ///
     /// The caller must guarantee that `index..index + 8` is in bounds for
@@ -878,6 +1002,12 @@ impl BinaryCodec {
     }
 
     /// Writes a `u128` value at `index` without checking slice bounds.
+    ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the sixteen-byte value starts.
+    /// - `value`: The value to serialize.
     ///
     /// # Safety
     ///
@@ -893,6 +1023,12 @@ impl BinaryCodec {
     }
 
     /// Writes an `i128` value at `index` without checking slice bounds.
+    ///
+    /// # Parameters
+    ///
+    /// - `bytes`: Destination byte slice.
+    /// - `index`: Absolute byte offset where the sixteen-byte value starts.
+    /// - `value`: The value to serialize.
     ///
     /// # Safety
     ///
