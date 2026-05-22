@@ -100,7 +100,32 @@ impl CharsetDecodeError {
     /// Returns a decoding error with [`CharsetDecodeErrorKind::MalformedSequence`].
     #[inline]
     pub const fn malformed_sequence(charset: Charset, index: usize) -> Self {
-        Self::new(charset, CharsetDecodeErrorKind::MalformedSequence, index)
+        Self::new(
+            charset,
+            CharsetDecodeErrorKind::MalformedSequence { value: None },
+            index,
+        )
+    }
+
+    /// Creates a malformed-sequence decoding error with a captured offending value.
+    ///
+    /// # Parameters
+    ///
+    /// - `charset`: The charset being decoded.
+    /// - `index`: The input unit index where the malformed sequence was detected.
+    /// - `value`: Raw value read from the offending input location.
+    ///
+    /// # Returns
+    ///
+    /// Returns a decoding error with [`CharsetDecodeErrorKind::MalformedSequence`]
+    /// and an attached offending value.
+    #[inline]
+    pub const fn malformed_sequence_with_value(charset: Charset, index: usize, value: u32) -> Self {
+        Self::new(
+            charset,
+            CharsetDecodeErrorKind::MalformedSequence { value: Some(value) },
+            index,
+        )
     }
 
     /// Creates an incomplete-sequence decoding error.
@@ -109,13 +134,27 @@ impl CharsetDecodeError {
     ///
     /// - `charset`: The charset being decoded.
     /// - `index`: The input unit index where more input was required.
+    /// - `required`: Total required input units.
+    /// - `available`: Available input units from the sequence start.
     ///
     /// # Returns
     ///
     /// Returns a decoding error with [`CharsetDecodeErrorKind::IncompleteSequence`].
     #[inline]
-    pub const fn incomplete_sequence(charset: Charset, index: usize) -> Self {
-        Self::new(charset, CharsetDecodeErrorKind::IncompleteSequence, index)
+    pub const fn incomplete_sequence(
+        charset: Charset,
+        index: usize,
+        required: usize,
+        available: usize,
+    ) -> Self {
+        Self::new(
+            charset,
+            CharsetDecodeErrorKind::IncompleteSequence {
+                required,
+                available,
+            },
+            index,
+        )
     }
 
     /// Creates an invalid-code-point decoding error.
@@ -133,7 +172,7 @@ impl CharsetDecodeError {
     pub const fn invalid_code_point(charset: Charset, index: usize, value: u32) -> Self {
         Self::with_value(
             charset,
-            CharsetDecodeErrorKind::InvalidCodePoint,
+            CharsetDecodeErrorKind::InvalidCodePoint { value },
             index,
             value,
         )
@@ -167,6 +206,28 @@ impl CharsetDecodeError {
     #[inline]
     pub const fn index(self) -> usize {
         self.index
+    }
+
+    /// Returns required input units for this decoding error, if reported.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(required)` for [`CharsetDecodeErrorKind::IncompleteSequence`],
+    /// otherwise `None`.
+    #[inline]
+    pub const fn required(self) -> Option<usize> {
+        self.kind.required()
+    }
+
+    /// Returns available input units for this decoding error, if reported.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(available)` for [`CharsetDecodeErrorKind::IncompleteSequence`],
+    /// otherwise `None`.
+    #[inline]
+    pub const fn available(self) -> Option<usize> {
+        self.kind.available()
     }
 
     /// Returns the raw value associated with this error.

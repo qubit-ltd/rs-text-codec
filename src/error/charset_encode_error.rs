@@ -18,10 +18,9 @@ use crate::{
 /// Error reported by a charset encoder.
 ///
 /// The error always carries the target charset, error kind, and operation
-/// index associated with the failure. For buffer errors this is either the
-/// caller-supplied output index or the first missing output unit index. Errors
-/// tied to a raw code point or character value expose that value through
-/// [`Self::value`].
+/// index associated with the failure. For buffer errors this is the caller-supplied
+/// output index. Errors tied to a raw code point or character value expose that
+/// value through [`Self::value`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CharsetEncodeError {
     /// Target charset of the operation that produced this error.
@@ -105,7 +104,7 @@ impl CharsetEncodeError {
     pub const fn invalid_code_point(charset: Charset, index: usize, value: u32) -> Self {
         Self::with_value(
             charset,
-            CharsetEncodeErrorKind::InvalidCodePoint,
+            CharsetEncodeErrorKind::InvalidCodePoint { value },
             index,
             value,
         )
@@ -123,7 +122,37 @@ impl CharsetEncodeError {
     /// Returns an encoding error with [`CharsetEncodeErrorKind::InvalidInputIndex`].
     #[inline]
     pub const fn invalid_input_index(charset: Charset, index: usize) -> Self {
-        Self::new(charset, CharsetEncodeErrorKind::InvalidInputIndex, index)
+        Self::new(
+            charset,
+            CharsetEncodeErrorKind::InvalidInputIndex { input_len: 0 },
+            index,
+        )
+    }
+
+    /// Creates an invalid-input-index encoding error with the input length.
+    ///
+    /// # Parameters
+    ///
+    /// - `charset`: The target charset.
+    /// - `index`: The input index that was out of bounds.
+    /// - `input_len`: The input slice length checked during encoding.
+    ///
+    /// # Returns
+    ///
+    /// Returns an encoding error with
+    /// [`CharsetEncodeErrorKind::InvalidInputIndex`], including the checked input
+    /// length.
+    #[inline]
+    pub const fn invalid_input_index_with_len(
+        charset: Charset,
+        index: usize,
+        input_len: usize,
+    ) -> Self {
+        Self::new(
+            charset,
+            CharsetEncodeErrorKind::InvalidInputIndex { input_len },
+            index,
+        )
     }
 
     /// Creates an unmappable-character encoding error.
@@ -141,7 +170,7 @@ impl CharsetEncodeError {
     pub const fn unmappable_character(charset: Charset, index: usize, value: u32) -> Self {
         Self::with_value(
             charset,
-            CharsetEncodeErrorKind::UnmappableCharacter,
+            CharsetEncodeErrorKind::UnmappableCharacter { value },
             index,
             value,
         )
@@ -152,14 +181,50 @@ impl CharsetEncodeError {
     /// # Parameters
     ///
     /// - `charset`: The target charset.
-    /// - `index`: The caller-supplied output index or first missing output unit index.
+    /// - `index`: The caller-supplied output index.
+    /// - `required`: Total required output units.
+    /// - `available`: Available output units from `index`.
     ///
     /// # Returns
     ///
     /// Returns an encoding error with [`CharsetEncodeErrorKind::BufferTooSmall`].
     #[inline]
-    pub const fn buffer_too_small(charset: Charset, index: usize) -> Self {
-        Self::new(charset, CharsetEncodeErrorKind::BufferTooSmall, index)
+    pub const fn buffer_too_small(
+        charset: Charset,
+        index: usize,
+        required: usize,
+        available: usize,
+    ) -> Self {
+        Self::new(
+            charset,
+            CharsetEncodeErrorKind::BufferTooSmall {
+                required,
+                available,
+            },
+            index,
+        )
+    }
+
+    /// Returns required output units for this encoding error, if reported.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(required)` for [`CharsetEncodeErrorKind::BufferTooSmall`],
+    /// otherwise `None`.
+    #[inline]
+    pub const fn required(self) -> Option<usize> {
+        self.kind.required()
+    }
+
+    /// Returns available output units for this encoding error, if reported.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(available)` for [`CharsetEncodeErrorKind::BufferTooSmall`],
+    /// otherwise `None`.
+    #[inline]
+    pub const fn available(self) -> Option<usize> {
+        self.kind.available()
     }
 
     /// Returns the target charset.

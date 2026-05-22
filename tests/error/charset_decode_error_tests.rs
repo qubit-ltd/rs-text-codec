@@ -9,7 +9,10 @@ fn test_charset_decode_error_exposes_context() {
     let error = CharsetDecodeError::malformed_sequence(Charset::UTF_8, 7);
 
     assert_eq!(Charset::UTF_8, error.charset());
-    assert_eq!(CharsetDecodeErrorKind::MalformedSequence, error.kind());
+    assert_eq!(
+        CharsetDecodeErrorKind::MalformedSequence { value: None },
+        error.kind()
+    );
     assert_eq!(7, error.index());
     assert_eq!(None, error.value());
     assert_eq!(10, error.offset_by(3).index());
@@ -18,21 +21,40 @@ fn test_charset_decode_error_exposes_context() {
         error.to_string(),
     );
 
-    let incomplete = CharsetDecodeError::incomplete_sequence(Charset::UTF_16, 3);
+    let incomplete = CharsetDecodeError::incomplete_sequence(Charset::UTF_16, 3, 7, 0);
     assert_eq!(Charset::UTF_16, incomplete.charset());
-    assert_eq!(
-        CharsetDecodeErrorKind::IncompleteSequence,
-        incomplete.kind()
-    );
+    assert!(matches!(
+        incomplete.kind(),
+        CharsetDecodeErrorKind::IncompleteSequence { .. },
+    ));
     assert_eq!(3, incomplete.index());
+    assert_eq!(
+        7,
+        incomplete
+            .required()
+            .expect("required payload is set for incomplete sequence"),
+    );
+    assert_eq!(
+        0,
+        incomplete
+            .available()
+            .expect("available payload is set for incomplete sequence"),
+    );
+    assert_eq!(
+        "UTF-16 decoding error at index 3: The encoded text sequence is incomplete (required 7 units, available 0 units).",
+        incomplete.to_string(),
+    );
 
     let invalid = CharsetDecodeError::invalid_code_point(Charset::UTF_32, 5, 0x110000);
     assert_eq!(Charset::UTF_32, invalid.charset());
-    assert_eq!(CharsetDecodeErrorKind::InvalidCodePoint, invalid.kind());
+    assert!(matches!(
+        invalid.kind(),
+        CharsetDecodeErrorKind::InvalidCodePoint { value: 0x110000 },
+    ));
     assert_eq!(5, invalid.index());
     assert_eq!(Some(0x110000), invalid.value());
     assert_eq!(
-        "UTF-32 decoding error at index 5 for value 0x110000: The decoded code point is not a valid Unicode scalar value.",
+        "UTF-32 decoding error at index 5 for value 0x110000: The decoded code point 0x110000 is not a valid Unicode scalar value.",
         invalid.to_string(),
     );
 }
