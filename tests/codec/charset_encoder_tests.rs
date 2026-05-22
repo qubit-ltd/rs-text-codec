@@ -12,6 +12,7 @@ use qubit_text_codec::{
     DecodeStatus,
     UnmappableAction,
 };
+use std::cell::Cell;
 
 #[derive(Clone, Copy, Debug, Default)]
 struct AsciiBytesCodec;
@@ -200,6 +201,77 @@ impl CharsetCodec for ReplacementAllUnencodableCodec {
                 Charset::ASCII,
                 index,
                 ch as u32,
+            ));
+        }
+        output[index] = ch as u8;
+        Ok(1)
+    }
+}
+
+#[derive(Debug, Default)]
+struct CountingAsciiEncoderCodec {
+    encode_calls: Cell<usize>,
+}
+
+impl CountingAsciiEncoderCodec {
+    fn encode_calls(&self) -> usize {
+        self.encode_calls.get()
+    }
+}
+
+impl CharsetCodec for CountingAsciiEncoderCodec {
+    type Unit = u8;
+
+    fn charset(&self) -> Charset {
+        Charset::ASCII
+    }
+
+    fn max_units_per_char(&self) -> usize {
+        1
+    }
+
+    fn decode_one(&self, input: &[u8], index: usize) -> CharsetDecodeResult<DecodeStatus> {
+        if index > input.len() {
+            return Err(qubit_text_codec::CharsetDecodeError::malformed_sequence(
+                Charset::ASCII,
+                index,
+            ));
+        }
+        if index == input.len() {
+            return Ok(DecodeStatus::NeedMore {
+                required: index + 1,
+                available: 0,
+            });
+        }
+        let value = input[index];
+        if value > 0x7f {
+            return Err(qubit_text_codec::CharsetDecodeError::malformed_sequence(
+                Charset::ASCII,
+                index,
+            ));
+        }
+        Ok(DecodeStatus::Complete {
+            value: value as char,
+            consumed: 1,
+        })
+    }
+
+    fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
+        let current = self.encode_calls.get();
+        self.encode_calls.set(current + 1);
+        if !ch.is_ascii() {
+            return Err(CharsetEncodeError::unmappable_character(
+                Charset::ASCII,
+                index,
+                ch as u32,
+            ));
+        }
+        if index >= output.len() {
+            return Err(CharsetEncodeError::buffer_too_small(
+                Charset::ASCII,
+                index,
+                index + 1,
+                0,
             ));
         }
         output[index] = ch as u8;
@@ -398,4 +470,26 @@ fn test_charset_encoder_with_replacement_rejects_unencodable_character_immediate
         error.kind(),
         CharsetEncodeErrorKind::UnmappableCharacter { .. },
     ));
+}
+
+#[test]
+fn test_charset_encoder_replacement_encoding_is_cached() {
+    let mut encoder = CharsetEncoder::new(CountingAsciiEncoderCodec::default());
+
+    encoder
+        .set_replacement('*')
+        .expect("user replacement should be encodable");
+    assert_eq!(2, encoder.codec().encode_calls());
+
+    let input = ['A', '中'];
+    let mut output = [0_u8; 2];
+    let progress = encoder
+        .convert(&input, 0, &mut output, 0)
+        .expect("replace unmappable character");
+
+    assert_eq!(CoderStatus::Complete, progress.status());
+    assert_eq!(2, progress.read());
+    assert_eq!(2, progress.written());
+    assert_eq!(b"A*", &output);
+    assert_eq!(3, encoder.codec().encode_calls());
 }

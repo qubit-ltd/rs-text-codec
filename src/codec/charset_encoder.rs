@@ -42,6 +42,8 @@ where
     unmappable_action: UnmappableAction,
     /// Replacement character used by [`UnmappableAction::Replace`].
     replacement: char,
+    /// Pre-encoded units for the configured replacement character.
+    replacement_units: Vec<C::Unit>,
 }
 
 impl<C> CharsetEncoder<C>
@@ -68,18 +70,23 @@ where
     /// by the codec, [`CharsetEncoder::DEFAULT_FALLBACK_REPLACEMENT`] is used.
     #[must_use]
     pub fn new(codec: C) -> Self {
-        match Self::replacement_is_encodable(&codec, Self::DEFAULT_REPLACEMENT) {
-            Ok(()) => Self {
+        match Self::encode_char_to_units(&codec, Self::DEFAULT_REPLACEMENT) {
+            Ok(replacement_units) => Self {
                 codec,
                 unmappable_action: UnmappableAction::Replace,
                 replacement: Self::DEFAULT_REPLACEMENT,
+                replacement_units,
             },
             Err(default_error) => {
-                match Self::replacement_is_encodable(&codec, Self::DEFAULT_FALLBACK_REPLACEMENT) {
-                    Ok(()) => Self {
+                match Self::encode_char_to_units(
+                    &codec,
+                    Self::DEFAULT_FALLBACK_REPLACEMENT,
+                ) {
+                    Ok(replacement_units) => Self {
                         codec,
                         unmappable_action: UnmappableAction::Replace,
                         replacement: Self::DEFAULT_FALLBACK_REPLACEMENT,
+                        replacement_units,
                     },
                     Err(_) => panic!(
                         "cannot initialize CharsetEncoder for {:?}: neither {:?} nor {:?} is encodable ({default_error})",
@@ -107,8 +114,9 @@ where
     /// - `Err(Self::Error)` when the replacement is unsupported.
     #[inline]
     pub fn with_replacement(mut self, replacement: char) -> Result<Self, CharsetEncodeError> {
-        Self::replacement_is_encodable(&self.codec, replacement)?;
+        let replacement_units = Self::encode_char_to_units(&self.codec, replacement)?;
         self.replacement = replacement;
+        self.replacement_units = replacement_units;
         Ok(self)
     }
 
@@ -177,45 +185,46 @@ where
     /// Returns `Err` when the codec cannot encode the given replacement.
     #[inline]
     pub fn set_replacement(&mut self, replacement: char) -> Result<(), CharsetEncodeError> {
-        Self::replacement_is_encodable(&self.codec, replacement)?;
+        let replacement_units = Self::encode_char_to_units(&self.codec, replacement)?;
         self.replacement = replacement;
+        self.replacement_units = replacement_units;
         Ok(())
     }
 
-    /// Returns whether the replacement character can be encoded by the codec.
+    /// Encodes a single Unicode scalar value into a newly allocated unit buffer.
     ///
-    /// This helper is used during construction and configuration to fail fast on
-    /// unsupported replacement characters.
+    /// This helper is used for replacement-character validation and caching so
+    /// replacement bytes are encoded once during configuration.
     ///
     /// # Parameters
     ///
-    /// - `codec`: Target codec to validate against.
-    /// - `replacement`: Candidate replacement character.
+    /// - `codec`: Target codec used for encoding.
+    /// - `ch`: Character to encode.
     ///
     /// # Returns
     ///
-    /// - `Ok(())` when the replacement character is encodable.
-    /// - `Err(Self::Error)` when the replacement cannot be encoded.
+    /// - `Ok(Vec<C::Unit>)` containing exactly the encoded units.
+    /// - `Err(Self::Error)` when encoding fails.
     ///
     /// # Errors
     ///
-    /// - `CharsetEncodeErrorKind::UnmappableCharacter` when `replacement` cannot
-    ///   be represented by the codec.
-    /// - `CharsetEncodeErrorKind::BufferTooSmall` if the temporary probe buffer is
-    ///   unexpectedly too small.
-    /// - `CharsetEncodeErrorKind::InvalidInputIndex` when the codec rejects a
-    ///   zero index probe write.
-    /// - `CharsetEncodeErrorKind::InvalidCodePoint` for invalid scalar values.
-    fn replacement_is_encodable(codec: &C, replacement: char) -> Result<(), CharsetEncodeError> {
+    /// - `CharsetEncodeError` if the codec cannot encode the character.
+    fn encode_char_to_units(
+        codec: &C,
+        ch: char,
+    ) -> CharsetEncodeResult<Vec<C::Unit>> {
         let mut output = vec![C::Unit::default(); codec.max_units_per_char().max(1)];
-        match codec.encode_one(replacement, output.as_mut_slice(), 0) {
-            Ok(_) => Ok(()),
+        match codec.encode_one(ch, output.as_mut_slice(), 0) {
+            Ok(written) => {
+                output.truncate(written);
+                Ok(output)
+            }
             Err(error) => match error.kind() {
-                CharsetEncodeErrorKind::UnmappableCharacter { .. } => {
+                CharsetEncodeErrorKind::UnmappableCharacter { value } => {
                     Err(CharsetEncodeError::unmappable_character(
                         codec.charset(),
                         error.index(),
-                        replacement as u32,
+                        value,
                     ))
                 }
                 CharsetEncodeErrorKind::BufferTooSmall { .. }
@@ -308,11 +317,7 @@ where
                             input_cursor += 1;
                         }
                         UnmappableAction::Replace => {
-                            let written = match self.encode_replacement(
-                                output,
-                                output_cursor,
-                                input_cursor,
-                            ) {
+                            let written = match self.write_replacement(output, output_cursor) {
                                 Ok(written) => written,
                                 Err(error)
                                     if matches!(
@@ -359,13 +364,12 @@ impl<C> CharsetEncoder<C>
 where
     C: CharsetCodec,
 {
-    /// Encodes the configured replacement character.
+    /// Writes the cached replacement units into the target output slice.
     ///
     /// # Parameters
     ///
     /// - `output`: Complete target output slice.
     /// - `output_index`: Absolute output index where replacement writing starts.
-    /// - `input_index`: Absolute input character index associated with replacement.
     ///
     /// # Returns
     ///
@@ -373,43 +377,27 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`CharsetEncodeError`] when the output buffer is too small or the
-    /// configured replacement character is also unmappable.
+    /// Returns [`CharsetEncodeError`] when the output buffer is too small.
     #[inline]
-    fn encode_replacement(
+    fn write_replacement(
         &self,
         output: &mut [C::Unit],
         output_index: usize,
-        input_index: usize,
     ) -> CharsetEncodeResult<usize> {
-        match self
-            .codec
-            .encode_one(self.replacement, output, output_index)
-        {
-            Ok(written) => Ok(written),
-            Err(error) if matches!(error.kind(), CharsetEncodeErrorKind::BufferTooSmall { .. }) => {
-                let required = error.required().unwrap_or(output_index + 1);
-                let available = error.available().unwrap_or(0);
-                Err(CharsetEncodeError::buffer_too_small(
-                    self.codec.charset(),
-                    output_index,
-                    required,
-                    available,
-                ))
-            }
-            Err(error) => {
-                if matches!(
-                    error.kind(),
-                    CharsetEncodeErrorKind::UnmappableCharacter { value: _ }
-                ) {
-                    return Err(CharsetEncodeError::unmappable_character(
-                        self.codec.charset(),
-                        input_index,
-                        self.replacement as u32,
-                    ));
-                }
-                Err(error)
-            }
+        let available = output.len().saturating_sub(output_index);
+        if available < self.replacement_units.len() {
+            return Err(CharsetEncodeError::buffer_too_small(
+                self.codec.charset(),
+                output_index,
+                output_index + self.replacement_units.len(),
+                available,
+            ));
         }
+        if self.replacement_units.is_empty() {
+            return Ok(0);
+        }
+        let end = output_index + self.replacement_units.len();
+        output[output_index..end].copy_from_slice(&self.replacement_units[..]);
+        Ok(self.replacement_units.len())
     }
 }
