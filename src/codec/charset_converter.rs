@@ -143,6 +143,43 @@ where
     pub fn encoder_mut(&mut self) -> &mut CharsetEncoder<E> {
         &mut self.encoder
     }
+
+    /// Writes the pending character through the target encoder.
+    ///
+    /// # Parameters
+    ///
+    /// - `ch`: Pending character to encode.
+    /// - `output`: Complete output slice visible to the converter.
+    /// - `output_index`: Absolute output index where this conversion call started.
+    /// - `written`: Number of output units already written by this conversion call.
+    ///
+    /// # Returns
+    ///
+    /// Returns [`CoderStatus::Complete`] when the pending character was written.
+    /// Returns [`CoderStatus::NeedOutput`] when it must stay pending for a later call.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CharsetConvertError::Encode`] when target encoding fails
+    /// according to the configured encoder policy.
+    #[inline]
+    fn write_pending(
+        &mut self,
+        ch: char,
+        output: &mut [E::Unit],
+        output_index: usize,
+        written: &mut usize,
+    ) -> Result<CoderProgress, CharsetConvertError> {
+        let single = [ch];
+        let encode_progress = self
+            .encoder
+            .convert(&single, 0, output, output_index + *written)?;
+        if encode_progress.status() == CoderStatus::Complete && encode_progress.read() == 1 {
+            self.pending = None;
+        }
+        *written += encode_progress.written();
+        Ok(encode_progress)
+    }
 }
 
 impl<D, E> Coder<D::Unit, E::Unit> for CharsetConverter<D, E>
@@ -275,48 +312,5 @@ where
             return Ok(CoderProgress::complete(0, written));
         }
         Ok(CoderProgress::complete(0, 0))
-    }
-}
-
-impl<D, E> CharsetConverter<D, E>
-where
-    D: CharsetCodec,
-    E: CharsetCodec,
-{
-    /// Writes the pending character through the target encoder.
-    ///
-    /// # Parameters
-    ///
-    /// - `ch`: Pending character to encode.
-    /// - `output`: Complete output slice visible to the converter.
-    /// - `output_index`: Absolute output index where this conversion call started.
-    /// - `written`: Number of output units already written by this conversion call.
-    ///
-    /// # Returns
-    ///
-    /// Returns [`CoderStatus::Complete`] when the pending character was written.
-    /// Returns [`CoderStatus::NeedOutput`] when it must stay pending for a later call.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`CharsetConvertError::Encode`] when target encoding fails
-    /// according to the configured encoder policy.
-    #[inline]
-    fn write_pending(
-        &mut self,
-        ch: char,
-        output: &mut [E::Unit],
-        output_index: usize,
-        written: &mut usize,
-    ) -> Result<CoderProgress, CharsetConvertError> {
-        let single = [ch];
-        let encode_progress = self
-            .encoder
-            .convert(&single, 0, output, output_index + *written)?;
-        if encode_progress.status() == CoderStatus::Complete && encode_progress.read() == 1 {
-            self.pending = None;
-        }
-        *written += encode_progress.written();
-        Ok(encode_progress)
     }
 }
