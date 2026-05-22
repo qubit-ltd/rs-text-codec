@@ -8,7 +8,14 @@
  *
  ******************************************************************************/
 use super::inner::utf8;
-use crate::{Charset, CharsetCodec, CharsetDecodeResult, CharsetEncodeResult, DecodeStatus, Utf8};
+use crate::{
+    Charset,
+    CharsetCodec,
+    CharsetDecodeResult,
+    CharsetEncodeResult,
+    DecodeStatus,
+    Utf8,
+};
 
 /// UTF-8 byte-buffer charset codec.
 ///

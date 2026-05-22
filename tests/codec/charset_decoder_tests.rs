@@ -1,7 +1,19 @@
 use qubit_text_codec::{
-    Charset, CharsetCodec, CharsetDecodeError, CharsetDecodeErrorKind, CharsetDecodeResult,
-    CharsetDecoder, CharsetEncodeError, CharsetEncodeErrorKind, CharsetEncodeResult, Coder,
-    CoderStatus, DecodeStatus, MalformedAction, Utf32U32Codec, Utf8Codec,
+    Charset,
+    CharsetCodec,
+    CharsetDecodeError,
+    CharsetDecodeErrorKind,
+    CharsetDecodeResult,
+    CharsetDecoder,
+    CharsetEncodeError,
+    CharsetEncodeErrorKind,
+    CharsetEncodeResult,
+    Coder,
+    CoderStatus,
+    DecodeStatus,
+    MalformedAction,
+    Utf8Codec,
+    Utf32U32Codec,
 };
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -48,6 +60,9 @@ fn test_charset_decoder_exposes_configuration_and_bounds() {
     assert_eq!(MalformedAction::Replace, decoder.malformed_action());
     assert_eq!('\u{fffd}', decoder.replacement());
     assert_eq!(Some(3), decoder.max_output_len(3));
+
+    let decoder_with_replacement = CharsetDecoder::new(Utf8Codec).with_replacement('!');
+    assert_eq!('!', decoder_with_replacement.replacement());
 
     decoder.set_replacement('?');
     decoder.set_malformed_action(MalformedAction::Ignore);

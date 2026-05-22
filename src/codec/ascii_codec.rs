@@ -8,8 +8,16 @@
  *
  ******************************************************************************/
 use crate::{
-    Ascii, Charset, CharsetCodec, CharsetDecodeError, CharsetDecodeErrorKind, CharsetDecodeResult,
-    CharsetEncodeError, CharsetEncodeErrorKind, CharsetEncodeResult, DecodeStatus,
+    Ascii,
+    Charset,
+    CharsetCodec,
+    CharsetDecodeError,
+    CharsetDecodeErrorKind,
+    CharsetDecodeResult,
+    CharsetEncodeError,
+    CharsetEncodeErrorKind,
+    CharsetEncodeResult,
+    DecodeStatus,
 };
 
 /// Single-byte ASCII codec for bytes.

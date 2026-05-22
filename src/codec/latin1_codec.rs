@@ -8,8 +8,16 @@
  *
  ******************************************************************************/
 use crate::{
-    Charset, CharsetCodec, CharsetDecodeError, CharsetDecodeErrorKind, CharsetDecodeResult,
-    CharsetEncodeError, CharsetEncodeErrorKind, CharsetEncodeResult, DecodeStatus, Unicode,
+    Charset,
+    CharsetCodec,
+    CharsetDecodeError,
+    CharsetDecodeErrorKind,
+    CharsetDecodeResult,
+    CharsetEncodeError,
+    CharsetEncodeErrorKind,
+    CharsetEncodeResult,
+    DecodeStatus,
+    Unicode,
 };
 
 /// Single-byte ISO-8859-1 codec for bytes.

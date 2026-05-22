@@ -8,8 +8,17 @@
  *
  ***************************************************************************/
 use crate::{
-    ByteOrder, Charset, CharsetDecodeError, CharsetDecodeErrorKind, CharsetDecodeResult,
-    CharsetEncodeError, CharsetEncodeErrorKind, CharsetEncodeResult, DecodeStatus, Unicode,
+    BinaryCodec,
+    ByteOrder,
+    Charset,
+    CharsetDecodeError,
+    CharsetDecodeErrorKind,
+    CharsetDecodeResult,
+    CharsetEncodeError,
+    CharsetEncodeErrorKind,
+    CharsetEncodeResult,
+    DecodeStatus,
+    Unicode,
 };
 
 /// Decodes the first UTF-32 character from a `u32` prefix.
@@ -123,13 +132,16 @@ pub(crate) fn decode_bytes_prefix(
         let kind = CharsetDecodeErrorKind::MalformedSequence { value: None };
         return Err(CharsetDecodeError::new(charset, kind, index));
     }
-    if index + 4 > input.len() {
+    let available = input.len() - index;
+    if available < 4 {
         return Ok(DecodeStatus::NeedMore {
-            required: index + 4,
-            available: input.len() - index,
+            required: index.saturating_add(4),
+            available,
         });
     }
-    let unit = byte_order.read_u32(&input[index..]);
+    let binary_codec = BinaryCodec::new(byte_order);
+    // SAFETY: The length check above guarantees that `index..index + 4` is in bounds.
+    let unit = unsafe { binary_codec.read_u32_at_unchecked(input, index) };
     match Unicode::to_char(unit) {
         Some(ch) => Ok(DecodeStatus::Complete {
             value: ch,
@@ -182,6 +194,8 @@ pub(crate) fn encode_bytes_char(
         };
         return Err(CharsetEncodeError::new(charset, kind, index));
     }
-    output[index..index + 4].copy_from_slice(&byte_order.u32_bytes(ch as u32));
+    let binary_codec = BinaryCodec::new(byte_order);
+    // SAFETY: The capacity check above guarantees that `index..index + 4` is in bounds.
+    unsafe { binary_codec.write_u32_at_unchecked(output, index, ch as u32) };
     Ok(4)
 }

@@ -8,8 +8,16 @@
  *
  ***************************************************************************/
 use crate::{
-    Charset, CharsetDecodeError, CharsetDecodeErrorKind, CharsetDecodeResult, CharsetEncodeError,
-    CharsetEncodeErrorKind, CharsetEncodeResult, DecodeStatus, Unicode, Utf8,
+    Charset,
+    CharsetDecodeError,
+    CharsetDecodeErrorKind,
+    CharsetDecodeResult,
+    CharsetEncodeError,
+    CharsetEncodeErrorKind,
+    CharsetEncodeResult,
+    DecodeStatus,
+    Unicode,
+    Utf8,
 };
 
 /// Decodes the first UTF-8 character from a byte slice starting at `index`.

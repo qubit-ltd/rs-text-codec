@@ -9,7 +9,13 @@
  ******************************************************************************/
 use super::inner::utf32;
 use crate::{
-    ByteOrder, Charset, CharsetCodec, CharsetDecodeResult, CharsetEncodeResult, DecodeStatus, Utf32,
+    ByteOrder,
+    Charset,
+    CharsetCodec,
+    CharsetDecodeResult,
+    CharsetEncodeResult,
+    DecodeStatus,
+    Utf32,
 };
 
 /// Combined byte-serialized UTF-32 codec.

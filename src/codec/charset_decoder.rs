@@ -7,11 +7,18 @@
  *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
-use crate::{CharsetDecodeError, CharsetDecodeErrorKind};
+use crate::{
+    CharsetDecodeError,
+    CharsetDecodeErrorKind,
+    Coder,
+    CoderProgress,
+    CoderStatus,
+};
 
 use super::{
-    charset_codec::CharsetCodec, coder::Coder, coder_progress::CoderProgress,
-    coder_status::CoderStatus, decode_status::DecodeStatus, malformed_action::MalformedAction,
+    charset_codec::CharsetCodec,
+    decode_status::DecodeStatus,
+    malformed_action::MalformedAction,
 };
 
 /// Converts units of one charset into Unicode scalar values.
@@ -265,9 +272,6 @@ where
 #[inline]
 fn malformed_skip(input_index: usize, input_len: usize, error_index: usize) -> usize {
     let available = input_len.saturating_sub(input_index);
-    if available == 0 {
-        return 0;
-    }
     let end = error_index.saturating_add(1).min(input_len);
     end.saturating_sub(input_index).max(1).min(available)
 }

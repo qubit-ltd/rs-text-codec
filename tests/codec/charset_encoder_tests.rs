@@ -1,11 +1,21 @@
 use qubit_text_codec::{
-    Charset, CharsetCodec, CharsetDecodeError, CharsetDecodeErrorKind, CharsetDecodeResult,
-    CharsetEncodeError, CharsetEncodeErrorKind, CharsetEncodeResult, CharsetEncoder, Coder,
-    CoderStatus, DecodeStatus, UnmappableAction,
+    Charset,
+    CharsetCodec,
+    CharsetDecodeError,
+    CharsetDecodeErrorKind,
+    CharsetDecodeResult,
+    CharsetEncodeError,
+    CharsetEncodeErrorKind,
+    CharsetEncodeResult,
+    CharsetEncoder,
+    Coder,
+    CoderStatus,
+    DecodeStatus,
+    UnmappableAction,
 };
 use std::cell::Cell;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 struct AsciiBytesCodec;
 
 impl CharsetCodec for AsciiBytesCodec {
@@ -217,6 +227,45 @@ impl CharsetCodec for CountingAsciiEncoderCodec {
     fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
         let current = self.encode_calls.get();
         self.encode_calls.set(current + 1);
+        if !ch.is_ascii() {
+            let kind = CharsetEncodeErrorKind::UnmappableCharacter { value: ch as u32 };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
+        }
+        if index >= output.len() {
+            let kind = CharsetEncodeErrorKind::BufferTooSmall {
+                required: index + 1,
+                available: 0,
+            };
+            return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
+        }
+        output[index] = ch as u8;
+        Ok(1)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct ZeroLengthReplacementCodec;
+
+impl CharsetCodec for ZeroLengthReplacementCodec {
+    type Unit = u8;
+
+    fn charset(&self) -> Charset {
+        Charset::ASCII
+    }
+
+    fn max_units_per_char(&self) -> usize {
+        0
+    }
+
+    fn decode_one(&self, _input: &[u8], index: usize) -> CharsetDecodeResult<DecodeStatus> {
+        let kind = CharsetDecodeErrorKind::MalformedSequence { value: None };
+        Err(CharsetDecodeError::new(Charset::ASCII, kind, index))
+    }
+
+    fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
+        if ch == CharsetEncoder::<Self>::DEFAULT_REPLACEMENT {
+            return Ok(0);
+        }
         if !ch.is_ascii() {
             let kind = CharsetEncodeErrorKind::UnmappableCharacter { value: ch as u32 };
             return Err(CharsetEncodeError::new(Charset::ASCII, kind, index));
@@ -446,4 +495,45 @@ fn test_charset_encoder_replacement_encoding_is_cached() {
     assert_eq!(2, progress.written());
     assert_eq!(b"A*", &output);
     assert_eq!(5, encoder.codec().encode_calls());
+}
+
+#[test]
+fn test_charset_encoder_supports_zero_length_replacement_units() {
+    let input = ['中'];
+    let mut output = [0_u8; 0];
+    let mut encoder = CharsetEncoder::new(ZeroLengthReplacementCodec);
+
+    let progress = encoder
+        .convert(&input, 0, &mut output, 0)
+        .expect("zero-length replacement should be written as no units");
+
+    assert_eq!(CoderStatus::Complete, progress.status());
+    assert_eq!(1, progress.read());
+    assert_eq!(0, progress.written());
+    assert_eq!(
+        CharsetEncoder::<ZeroLengthReplacementCodec>::DEFAULT_REPLACEMENT,
+        encoder.replacement()
+    );
+}
+
+#[test]
+fn test_charset_encoder_compares_configuration_and_formats_debug() {
+    let left = CharsetEncoder::new(AsciiBytesCodec)
+        .with_replacement('!')
+        .expect("replacement should be encodable");
+    let right = CharsetEncoder::new(AsciiBytesCodec)
+        .with_replacement('!')
+        .expect("replacement should be encodable");
+    let mut different = CharsetEncoder::new(AsciiBytesCodec)
+        .with_replacement('!')
+        .expect("replacement should be encodable");
+
+    different.set_unmappable_action(UnmappableAction::Ignore);
+
+    assert_eq!(left, right);
+    assert_ne!(left, different);
+
+    let debug = format!("{left:?}");
+    assert!(debug.contains("CharsetEncoder"));
+    assert!(debug.contains("replacement_units_len"));
 }

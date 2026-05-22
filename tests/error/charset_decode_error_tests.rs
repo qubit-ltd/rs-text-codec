@@ -1,4 +1,8 @@
-use qubit_text_codec::{Charset, CharsetDecodeError, CharsetDecodeErrorKind};
+use qubit_text_codec::{
+    Charset,
+    CharsetDecodeError,
+    CharsetDecodeErrorKind,
+};
 
 #[test]
 fn test_charset_decode_error_exposes_context() {

@@ -8,7 +8,14 @@
  *
  ******************************************************************************/
 use super::inner::utf16;
-use crate::{Charset, CharsetCodec, CharsetDecodeResult, CharsetEncodeResult, DecodeStatus, Utf16};
+use crate::{
+    Charset,
+    CharsetCodec,
+    CharsetDecodeResult,
+    CharsetEncodeResult,
+    DecodeStatus,
+    Utf16,
+};
 
 /// Combined UTF-16 `u16` code-unit codec.
 ///

@@ -8,7 +8,14 @@
  *
  ******************************************************************************/
 use super::inner::utf32;
-use crate::{Charset, CharsetCodec, CharsetDecodeResult, CharsetEncodeResult, DecodeStatus, Utf32};
+use crate::{
+    Charset,
+    CharsetCodec,
+    CharsetDecodeResult,
+    CharsetEncodeResult,
+    DecodeStatus,
+    Utf32,
+};
 
 /// Combined UTF-32 `u32` code-unit codec.
 ///

@@ -10,7 +10,10 @@
 use core::fmt;
 use std::error::Error;
 
-use crate::{Charset, CharsetDecodeErrorKind};
+use crate::{
+    Charset,
+    CharsetDecodeErrorKind,
+};
 
 /// Error reported by a charset decoder.
 ///
