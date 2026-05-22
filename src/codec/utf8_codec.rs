@@ -127,8 +127,8 @@ impl CharsetCodec for Utf8Codec {
     ///
     /// # Errors
     ///
-    /// * `CharsetEncodeError::buffer_too_small` if output has insufficient bytes from
-    ///   `index`.
+    /// * [`crate::CharsetEncodeErrorKind::BufferTooSmall`] if output has
+    ///   insufficient bytes from `index`.
     fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
         utf8::encode_char(ch, output, index)
     }

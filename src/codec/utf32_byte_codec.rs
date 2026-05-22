@@ -166,7 +166,8 @@ impl CharsetCodec for Utf32ByteCodec {
     ///
     /// # Errors
     ///
-    /// * `CharsetEncodeError::buffer_too_small` if fewer than 4 bytes remain in `output`.
+    /// * [`crate::CharsetEncodeErrorKind::BufferTooSmall`] if fewer than 4 bytes
+    ///   remain in `output`.
     fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
         utf32::encode_bytes_char(ch, output, self.byte_order, index)
     }

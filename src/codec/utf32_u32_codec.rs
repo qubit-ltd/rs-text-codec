@@ -132,7 +132,8 @@ impl CharsetCodec for Utf32U32Codec {
     ///
     /// # Errors
     ///
-    /// * `CharsetEncodeError::buffer_too_small` if `output` has no room at `index`.
+    /// * [`crate::CharsetEncodeErrorKind::BufferTooSmall`] if `output` has no
+    ///   room at `index`.
     fn encode_one(&self, ch: char, output: &mut [u32], index: usize) -> CharsetEncodeResult<usize> {
         utf32::encode_units_char(ch, output, index)
     }

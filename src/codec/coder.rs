@@ -260,20 +260,20 @@ pub trait Coder<Input, Output> {
     ///             read += 1;
     ///             written += 1;
     ///         }
-///         if input_index + read == input.len() {
-///             Ok(qubit_text_codec::CoderProgress::complete(read, written))
-///         } else {
-///             let status = qubit_text_codec::CoderStatus::NeedOutput {
-///                 output_index: output_index + written,
-///                 required: 1,
-///                 available: output.len().saturating_sub(output_index + written),
-///             };
-///             Ok(qubit_text_codec::CoderProgress::new(
-///                 status,
-///                 read,
-///                 written,
-///             ))
-///         }
+    ///         if input_index + read == input.len() {
+    ///             Ok(qubit_text_codec::CoderProgress::complete(read, written))
+    ///         } else {
+    ///             let status = qubit_text_codec::CoderStatus::NeedOutput {
+    ///                 output_index: output_index + written,
+    ///                 required: 1,
+    ///                 available: output.len().saturating_sub(output_index + written),
+    ///             };
+    ///             Ok(qubit_text_codec::CoderProgress::new(
+    ///                 status,
+    ///                 read,
+    ///                 written,
+    ///             ))
+    ///         }
     ///     }
     /// }
     ///

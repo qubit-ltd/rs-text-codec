@@ -133,7 +133,8 @@ impl CharsetCodec for Utf16U16Codec {
     ///
     /// # Errors
     ///
-    /// * `CharsetEncodeError::buffer_too_small` if destination is insufficient.
+    /// * [`crate::CharsetEncodeErrorKind::BufferTooSmall`] if destination is
+    ///   insufficient.
     fn encode_one(&self, ch: char, output: &mut [u16], index: usize) -> CharsetEncodeResult<usize> {
         utf16::encode_units_char(ch, output, index)
     }

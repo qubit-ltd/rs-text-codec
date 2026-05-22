@@ -166,7 +166,8 @@ impl CharsetCodec for Utf16ByteCodec {
     ///
     /// # Errors
     ///
-    /// * `CharsetEncodeError::buffer_too_small` if output does not have enough space.
+    /// * [`crate::CharsetEncodeErrorKind::BufferTooSmall`] if output does not
+    ///   have enough space.
     fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
         utf16::encode_bytes_char(ch, output, self.byte_order, index)
     }
