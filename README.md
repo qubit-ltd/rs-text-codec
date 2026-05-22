@@ -13,14 +13,14 @@ Buffer-oriented UTF codec primitives and Unicode/ASCII support utilities for Rus
 
 Qubit Text Codec is a low-level codec core for Rust code that needs explicit control below ordinary `str`, `String`, and `char` APIs. Its current built-in codecs focus on Unicode transfer formats: UTF-8, UTF-16, and UTF-32, with both code-unit and byte-oriented variants where that distinction matters.
 
-The crate also provides the small shared surface that codec adapters need: charset identity metadata, a generic `Coder` trait, low-level `CharsetCodec<T>` implementations, policy-aware `CharsetEncoder` / `CharsetDecoder` / `CharsetConverter` wrappers, decode status values, byte order and BOM helpers, and concrete encoding/decoding error types. ASCII and Unicode namespace helpers are included because UTF codecs and text parsers often need these checks close to the buffer boundary.
+The crate also provides the small shared surface that codec adapters need: charset identity metadata, a generic `Coder` trait, low-level `CharsetCodec` implementations (`Unit` identifies the storage unit), policy-aware `CharsetEncoder` / `CharsetDecoder` / `CharsetConverter` wrappers, decode status values, byte order and BOM helpers, and concrete encoding/decoding error types. ASCII and Unicode namespace helpers are included because UTF codecs and text parsers often need these checks close to the buffer boundary.
 
 Use this crate when you need:
 
 - ASCII classification, case conversion, digit conversion, and ASCII folding;
 - Unicode code point and scalar value checks, surrogate checks, plane calculation, and noncharacter/control classification;
 - UTF-8, UTF-16, and UTF-32 namespace helpers for byte or code-unit classification and length calculation;
-- buffer-level `CharsetCodec<T>` implementations for ASCII, ISO-8859-1 (Latin-1), UTF-8, UTF-16, and UTF-32;
+- buffer-level `CharsetCodec` implementations for ASCII, ISO-8859-1 (Latin-1), UTF-8, UTF-16, and UTF-32;
 - policy-aware charset encoders, decoders, and converters with malformed/unmappable replacement, ignore, and report actions;
 - byte-order and BOM handling for UTF-16 and UTF-32 byte streams;
 - a small trait and error vocabulary that future non-Unicode encoding adapters can reuse without making this crate a text I/O framework.
@@ -118,12 +118,18 @@ Encoding and decoding are split into three layers over caller-provided buffers.
 | Layer | Type | Purpose |
 | --- | --- |
 | Generic conversion | `Coder<Input, Output>` | Converts one sequence of code units into another and reports `CoderProgress` |
-| Low-level charset algorithm | `CharsetCodec<T>` | Encodes or decodes one Unicode `char` using storage unit `T` |
-| Policy decoder | `CharsetDecoder<C, T>` | Converts `T` units into `char` values and applies `MalformedAction` |
-| Policy encoder | `CharsetEncoder<C, T>` | Converts `char` values into `T` units and applies `UnmappableAction` |
-| Charset conversion | `CharsetConverter<D, E, T1, T2>` | Combines one decoder and one encoder to convert between charsets |
+| Low-level charset algorithm | `CharsetCodec` | Encodes or decodes one Unicode `char` using its associated storage unit |
+| Policy decoder | `CharsetDecoder<C>` | Converts source units into `char` values and applies `MalformedAction` |
+| Policy encoder | `CharsetEncoder<C>` | Converts `char` values into target units and applies `UnmappableAction` |
+| Charset conversion | `CharsetConverter<D, E>` | Combines one decoder and one encoder to convert between charsets |
 
-`T` is the buffer storage unit, not always the Unicode code unit. UTF-8 uses `u8`, UTF-16 code-unit codecs use `u16`, byte-serialized UTF-16 uses `u8`, UTF-32 code-unit codecs use `u32`, and byte-serialized UTF-32 uses `u8`.
+The associated `Unit` type is the buffer storage unit, not always the Unicode code unit. UTF-8 uses `u8`, UTF-16 code-unit codecs use `u16`, byte-serialized UTF-16 uses `u8`, UTF-32 code-unit codecs use `u32`, and byte-serialized UTF-32 uses `u8`.
+
+`Coder` is intentionally generic over unit types and has a small stateful interface:
+
+- Use `convert` when you are processing a potentially bounded stream and want to pause on `NeedInput` / `NeedOutput` without converting all data at once.
+- Use `CharsetDecoder` and `CharsetEncoder` when you want charset-specific policy (replace/ignore/report, replacement chars, unmappable behavior).
+- Use `CharsetConverter` when your pipeline is explicitly `source charset -> Unicode -> target charset`, so malformed/unmappable decisions are centralized in one place.
 
 All conversion APIs receive the full input/output slice plus an absolute start
 index. Progress counters are relative to those start indices, while errors
@@ -251,7 +257,7 @@ Contributions are welcome. Please feel free to submit a Pull Request.
 - Follow the Rust API guidelines.
 - Prefer standard Rust text APIs unless low-level buffer-oriented codec control is required.
 - Keep namespace enums focused on constants, classification, and sizing helpers.
-- Keep charset-specific algorithms in concrete `CharsetCodec<T>` types and keep malformed/unmappable policy in `CharsetEncoder`, `CharsetDecoder`, or `CharsetConverter`.
+- Keep charset-specific algorithms in concrete `CharsetCodec` types and keep malformed/unmappable policy in `CharsetEncoder`, `CharsetDecoder`, or `CharsetConverter`.
 - Use specialized Unicode crates or ICU4X for normalization, segmentation, collation, display width, and locale-aware behavior.
 - Maintain comprehensive test coverage.
 - Document public APIs with examples when they clarify behavior.

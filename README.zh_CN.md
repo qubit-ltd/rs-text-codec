@@ -13,14 +13,14 @@
 
 Qubit Text Codec 是一个低层编解码核心，服务于那些需要在 Rust 普通 `str`、`String` 和 `char` API 之下做显式控制的代码。当前内置编解码器聚焦 Unicode 传输格式：ASCII、ISO-8859-1（Latin-1）、UTF-8、UTF-16 和 UTF-32；在需要区分码元与字节表示的地方，同时提供码元版和面向字节的版本。
 
-本库也提供编解码适配器需要共用的小型基础能力：charset 身份元数据、通用 `Coder` 接口、低层 `CharsetCodec<T>`、带策略的 `CharsetEncoder` / `CharsetDecoder` / `CharsetConverter`、解码状态、字节序和 BOM 辅助工具，以及具体的编码/解码错误类型。ASCII 和 Unicode 命名空间辅助工具保留在这里，是因为 UTF 编解码器和文本解析器经常需要在缓冲区边界附近直接做这些检查。
+本库也提供编解码适配器需要共用的小型基础能力：charset 身份元数据、通用 `Coder` 接口、低层 `CharsetCodec`（其关联类型 `Unit` 表示存储单元）、带策略的 `CharsetEncoder` / `CharsetDecoder` / `CharsetConverter`、解码状态、字节序和 BOM 辅助工具，以及具体的编码/解码错误类型。ASCII 和 Unicode 命名空间辅助工具保留在这里，是因为 UTF 编解码器和文本解析器经常需要在缓冲区边界附近直接做这些检查。
 
 适合使用本库的场景包括：
 
 - 需要 ASCII 分类、大小写转换、数字转换和 ASCII 折叠；
 - 需要 Unicode 码点与标量值检查、代理项检查、平面计算、非字符/控制字符分类；
 - 需要 UTF-8、UTF-16、UTF-32 命名空间辅助工具来做字节/码元分类和长度计算；
-- 需要面向缓冲区的 `CharsetCodec<T>`，用于 ASCII、ISO-8859-1、UTF-8、UTF-16、UTF-32；
+- 需要面向缓冲区的 `CharsetCodec`，用于 ASCII、ISO-8859-1、UTF-8、UTF-16、UTF-32；
 - 需要带 malformed / unmappable 处理策略的 charset encoder、decoder 和 converter；
 - 需要处理 UTF-16 / UTF-32 字节流的字节序和 BOM；
 - 需要一组小型接口和错误类型体系，供未来非 Unicode 编码适配器复用，但不把本库扩成文本 I/O 框架。
@@ -115,12 +115,18 @@ UTF-8 解码遵循 [Unicode Standard 表 3-7](https://www.unicode.org/versions/l
 | 层次 | 类型 | 用途 |
 | --- | --- |
 | 通用转换 | `Coder<Input, Output>` | 把一种 code unit 序列转换成另一种，并返回 `CoderProgress` |
-| 低层 charset 算法 | `CharsetCodec<T>` | 用存储单元 `T` 对单个 Unicode `char` 编码或解码 |
-| 带策略的解码器 | `CharsetDecoder<C, T>` | 把 `T` 单元转换为 `char`，并应用 `MalformedAction` |
-| 带策略的编码器 | `CharsetEncoder<C, T>` | 把 `char` 转换为 `T` 单元，并应用 `UnmappableAction` |
-| charset 转换器 | `CharsetConverter<D, E, T1, T2>` | 组合一个 decoder 和一个 encoder，在两个 charset 之间转换 |
+| 低层 charset 算法 | `CharsetCodec` | 用其关联存储单元对单个 Unicode `char` 编码或解码 |
+| 带策略的解码器 | `CharsetDecoder<C>` | 把源单元转换为 `char`，并应用 `MalformedAction` |
+| 带策略的编码器 | `CharsetEncoder<C>` | 把 `char` 转换为目标单元，并应用 `UnmappableAction` |
+| charset 转换器 | `CharsetConverter<D, E>` | 组合一个 decoder 和一个 encoder，在两个 charset 之间转换 |
 
-`T` 表示缓冲区的存储单元，不总是 Unicode 码元。UTF-8 使用 `u8`，UTF-16 的码元版使用 `u16`，按字节序列化的 UTF-16 使用 `u8`，UTF-32 的码元版使用 `u32`，按字节序列化的 UTF-32 使用 `u8`。
+`Unit` 表示缓冲区的存储单元，不总是 Unicode 码元。UTF-8 使用 `u8`，UTF-16 的码元版使用 `u16`，按字节序列化的 UTF-16 使用 `u8`，UTF-32 的码元版使用 `u32`，按字节序列化的 UTF-32 使用 `u8`。
+
+`Coder` 是通用流式 API。它返回 `NeedInput` / `NeedOutput` 时，会给出绝对下标、还需数量和已用数量，适合“可分片 + 回压”场景。
+
+- 需要增量处理时直接用 `Coder::convert`；
+- 只想把 malformed / unmappable 映射策略固定成可复用行为时，用 `CharsetDecoder` / `CharsetEncoder`；
+- 想把一个 charset 转成另一个 charset（通常通过中间 Unicode 码点流）时，用 `CharsetConverter`。
 
 所有转换接口都接收完整输入/输出 slice 以及绝对起始下标。返回的 progress 计数相对于这些起始下标，而错误对象里的 index 直接指向传入缓冲区中的绝对位置。
 
@@ -241,7 +247,7 @@ Copyright (c) 2026. Haixing Hu.
 - 遵循 Rust API 指南。
 - 除非需要底层面向缓冲区的编解码控制，否则优先使用 Rust 标准文本 API。
 - 命名空间枚举只聚焦在常量、分类和长度计算辅助工具。
-- charset 相关算法应放在具体的 `CharsetCodec<T>` 类型中；malformed / unmappable 策略应放在 `CharsetEncoder`、`CharsetDecoder` 或 `CharsetConverter` 中。
+- charset 相关算法应放在具体的 `CharsetCodec` 类型中；malformed / unmappable 策略应放在 `CharsetEncoder`、`CharsetDecoder` 或 `CharsetConverter` 中。
 - 规范化、切分、排序、显示宽度和按区域设置处理的行为请使用专门的 Unicode 库或 ICU4X。
 - 保持全面的测试覆盖。
 - 公共 API 在有助于说明行为时应提供文档和示例。
