@@ -76,7 +76,7 @@ where
     /// Returns a converter with default decoder and encoder policies.
     #[must_use]
     #[inline]
-    pub const fn from_codecs(source: D, target: E) -> Self {
+    pub fn from_codecs(source: D, target: E) -> Self {
         Self::new(CharsetDecoder::new(source), CharsetEncoder::new(target))
     }
 
@@ -92,7 +92,7 @@ where
     /// Returns a converter that composes the supplied decoder and encoder.
     #[must_use]
     #[inline]
-    pub const fn new(decoder: CharsetDecoder<D>, encoder: CharsetEncoder<E>) -> Self {
+    pub fn new(decoder: CharsetDecoder<D>, encoder: CharsetEncoder<E>) -> Self {
         Self {
             decoder,
             encoder,

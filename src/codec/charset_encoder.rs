@@ -47,6 +47,11 @@ impl<C> CharsetEncoder<C>
 where
     C: CharsetCodec,
 {
+    /// Default replacement character used when unmappable input is replaced.
+    pub const DEFAULT_REPLACEMENT: char = '\u{fffd}';
+    /// Fallback replacement used when the default replacement is unmappable.
+    pub const DEFAULT_FALLBACK_REPLACEMENT: char = '?';
+
     /// Creates an encoder with default replacement policy.
     ///
     /// # Parameters
@@ -56,15 +61,53 @@ where
     /// # Returns
     ///
     /// Returns an encoder whose unmappable action is
-    /// [`UnmappableAction::Replace`] and whose replacement character is `'?'`.
+    /// [`UnmappableAction::Replace`] and whose replacement character is
+    /// [`CharsetEncoder::DEFAULT_REPLACEMENT`]. If the default cannot be encoded
+    /// by the codec, [`CharsetEncoder::DEFAULT_FALLBACK_REPLACEMENT`] is used.
     #[must_use]
-    #[inline]
-    pub const fn new(codec: C) -> Self {
-        Self {
-            codec,
-            unmappable_action: UnmappableAction::Replace,
-            replacement: '?',
+    pub fn new(codec: C) -> Self {
+        match Self::replacement_is_encodable(&codec, Self::DEFAULT_REPLACEMENT) {
+            Ok(()) => Self {
+                codec,
+                unmappable_action: UnmappableAction::Replace,
+                replacement: Self::DEFAULT_REPLACEMENT,
+            },
+            Err(default_error) => {
+                match Self::replacement_is_encodable(&codec, Self::DEFAULT_FALLBACK_REPLACEMENT) {
+                    Ok(()) => Self {
+                        codec,
+                        unmappable_action: UnmappableAction::Replace,
+                        replacement: Self::DEFAULT_FALLBACK_REPLACEMENT,
+                    },
+                    Err(_) => panic!(
+                        "cannot initialize CharsetEncoder for {:?}: neither {:?} nor {:?} is encodable ({default_error})",
+                        codec.charset(),
+                        Self::DEFAULT_REPLACEMENT,
+                        Self::DEFAULT_FALLBACK_REPLACEMENT,
+                    ),
+                }
+            }
         }
+    }
+
+    /// Creates an encoder with the provided replacement character.
+    ///
+    /// The replacement character is checked once on construction. If the codec
+    /// cannot encode it, this returns an error immediately.
+    ///
+    /// # Parameters
+    ///
+    /// - `replacement`: Replacement character for unmappable input.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Self)` when the character is encodable by the codec.
+    /// - `Err(Self::Error)` when the replacement is unsupported.
+    #[inline]
+    pub fn with_replacement(mut self, replacement: char) -> Result<Self, CharsetEncodeError> {
+        Self::replacement_is_encodable(&self.codec, replacement)?;
+        self.replacement = replacement;
+        Ok(self)
     }
 
     /// Returns the wrapped low-level codec.
@@ -126,9 +169,34 @@ where
     /// # Parameters
     ///
     /// - `replacement`: New replacement character used by replace policy.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err` when the codec cannot encode the given replacement.
     #[inline]
-    pub fn set_replacement(&mut self, replacement: char) {
+    pub fn set_replacement(&mut self, replacement: char) -> Result<(), CharsetEncodeError> {
+        Self::replacement_is_encodable(&self.codec, replacement)?;
         self.replacement = replacement;
+        Ok(())
+    }
+
+    fn replacement_is_encodable(codec: &C, replacement: char) -> Result<(), CharsetEncodeError> {
+        let mut output = vec![C::Unit::default(); codec.max_units_per_char().max(1)];
+        match codec.encode_one(replacement, output.as_mut_slice(), 0) {
+            Ok(_) => Ok(()),
+            Err(error) => match error.kind() {
+                CharsetEncodeErrorKind::UnmappableCharacter { .. } => {
+                    Err(CharsetEncodeError::unmappable_character(
+                        codec.charset(),
+                        error.index(),
+                        replacement as u32,
+                    ))
+                }
+                CharsetEncodeErrorKind::BufferTooSmall { .. }
+                | CharsetEncodeErrorKind::InvalidInputIndex { .. }
+                | CharsetEncodeErrorKind::InvalidCodePoint { .. } => Err(error),
+            },
+        }
     }
 }
 

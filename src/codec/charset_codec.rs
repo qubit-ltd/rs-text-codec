@@ -33,7 +33,7 @@ pub trait CharsetCodec {
     /// `u8` is used by byte-oriented codecs such as UTF-8 and Latin-1;
     /// `u16` is used by UTF-16 code-unit codecs; `u32` is used by UTF-32
     /// code-unit codecs.
-    type Unit;
+    type Unit: Copy + Default;
     /// Returns the charset handled by this codec.
     ///
     /// # Returns

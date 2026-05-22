@@ -46,6 +46,9 @@ impl<C> CharsetDecoder<C>
 where
     C: CharsetCodec,
 {
+    /// Default replacement character used when malformed input is replaced.
+    pub const DEFAULT_REPLACEMENT: char = '\u{fffd}';
+
     /// Creates a decoder with default replacement policy.
     ///
     /// # Parameters
@@ -62,8 +65,26 @@ where
         Self {
             codec,
             malformed_action: MalformedAction::Replace,
-            replacement: '\u{fffd}',
+            replacement: Self::DEFAULT_REPLACEMENT,
         }
+    }
+
+    /// Creates a decoder with a custom replacement character.
+    ///
+    /// This method performs no codec-level validation because malformed-input
+    /// replacement for decoding writes directly to the output `char` buffer.
+    ///
+    /// # Parameters
+    ///
+    /// - `replacement`: Replacement character for malformed sequences.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new decoder configured with the provided replacement.
+    #[inline]
+    pub fn with_replacement(mut self, replacement: char) -> Self {
+        self.replacement = replacement;
+        self
     }
 
     /// Returns the wrapped low-level codec.
