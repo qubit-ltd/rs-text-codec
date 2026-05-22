@@ -13,13 +13,32 @@ use qubit_text_codec::{
 fn test_utf32_byte_codec_exposes_encoder_and_decoder_contracts() {
     let codec = Utf32ByteCodec::new(ByteOrder::BigEndian);
 
+    assert_eq!(
+        Charset::UTF_32BE,
+        <Utf32ByteCodec as CharsetCodec>::charset(&codec)
+    );
+    assert_eq!(
+        Utf32::MAX_BYTES_PER_CHAR,
+        <Utf32ByteCodec as CharsetCodec>::max_units_per_char(&codec)
+    );
+    assert_eq!(
+        DecodeStatus::NeedMore {
+            required: 4,
+            available: 0,
+        },
+        <Utf32ByteCodec as CharsetCodec>::decode_one(&codec, &[], 0)
+            .expect("utf32 bytes need more"),
+    );
+    assert_eq!(
+        4,
+        <Utf32ByteCodec as CharsetCodec>::encode_one(&codec, 'A', &mut [0_u8; 4], 0)
+            .expect("encode utf32 unit bytes"),
+    );
+
     assert_eq!(ByteOrder::BigEndian, codec.byte_order());
     assert_eq!(Charset::UTF_32BE, codec.charset());
     assert_eq!(Utf32::MAX_BYTES_PER_CHAR, codec.max_units_per_char());
-    assert_eq!(
-        Utf32::MAX_BYTES_PER_CHAR,
-        CharsetCodec::<u8>::max_units_per_char(&codec)
-    );
+    assert_eq!(Utf32::MAX_BYTES_PER_CHAR, codec.max_units_per_char());
 }
 
 #[test]
@@ -60,24 +79,36 @@ fn test_utf32_byte_codec_reports_partial_invalid_and_small_buffers() {
     let error = codec
         .decode_one(&[], 1)
         .expect_err("index outside slice should fail");
-    assert_eq!(CharsetDecodeErrorKind::MalformedSequence, error.kind());
+    assert_eq!(
+        CharsetDecodeErrorKind::MalformedSequence { value: None },
+        error.kind()
+    );
     assert_eq!(1, error.index());
 
     let error = codec
         .decode_one(&[0x00, 0x00, 0x11, 0x00], 0)
         .expect_err("non-scalar UTF-32 unit should fail");
-    assert_eq!(CharsetDecodeErrorKind::InvalidCodePoint, error.kind());
+    assert!(matches!(
+        error.kind(),
+        CharsetDecodeErrorKind::InvalidCodePoint { .. },
+    ));
     assert_eq!(Some(0x0011_0000), error.value());
 
     let error = codec
         .encode_one('A', &mut output[..0], 1)
         .expect_err("index outside slice should fail");
-    assert_eq!(CharsetEncodeErrorKind::BufferTooSmall, error.kind());
+    assert!(matches!(
+        error.kind(),
+        CharsetEncodeErrorKind::BufferTooSmall { .. },
+    ));
     assert_eq!(1, error.index());
 
     let error = codec
         .encode_one('A', &mut output[..3], 0)
         .expect_err("UTF-32 byte encoding needs four bytes");
-    assert_eq!(CharsetEncodeErrorKind::BufferTooSmall, error.kind());
-    assert_eq!(3, error.index());
+    assert!(matches!(
+        error.kind(),
+        CharsetEncodeErrorKind::BufferTooSmall { .. },
+    ));
+    assert_eq!(0, error.index());
 }

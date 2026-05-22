@@ -48,7 +48,8 @@ impl Latin1Codec {
     }
 }
 
-impl CharsetCodec<u8> for Latin1Codec {
+impl CharsetCodec for Latin1Codec {
+    type Unit = u8;
     /// Returns the charset descriptor for this codec.
     ///
     /// # Returns
@@ -129,6 +130,8 @@ impl CharsetCodec<u8> for Latin1Codec {
             return Err(CharsetEncodeError::buffer_too_small(
                 Charset::ISO_8859_1,
                 index,
+                index + 1,
+                0,
             ));
         }
 

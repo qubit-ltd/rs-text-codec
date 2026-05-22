@@ -7,8 +7,6 @@
  *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
-use core::marker::PhantomData;
-
 use crate::{
     CharsetDecodeError,
     CharsetDecodeErrorKind,
@@ -31,21 +29,23 @@ use super::{
 ///
 /// - `C`: Low-level charset codec used to decode source storage units into one
 ///   Unicode scalar value.
-/// - `T`: Source storage unit type consumed by the decoder, such as `u8`,
-///   `u16`, or `u32`.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CharsetDecoder<C, T> {
+pub struct CharsetDecoder<C>
+where
+    C: CharsetCodec,
+{
     /// Low-level codec used for source decoding.
     codec: C,
     /// Action used for malformed input units.
     malformed_action: MalformedAction,
     /// Replacement character used by [`MalformedAction::Replace`].
     replacement: char,
-    /// Storage unit marker for the source buffer.
-    unit: PhantomData<fn() -> T>,
 }
 
-impl<C, T> CharsetDecoder<C, T> {
+impl<C> CharsetDecoder<C>
+where
+    C: CharsetCodec,
+{
     /// Creates a decoder with default replacement policy.
     ///
     /// # Parameters
@@ -63,7 +63,6 @@ impl<C, T> CharsetDecoder<C, T> {
             codec,
             malformed_action: MalformedAction::Replace,
             replacement: '\u{fffd}',
-            unit: PhantomData,
         }
     }
 
@@ -132,9 +131,9 @@ impl<C, T> CharsetDecoder<C, T> {
     }
 }
 
-impl<C, T> Coder<T, char> for CharsetDecoder<C, T>
+impl<C> Coder<C::Unit, char> for CharsetDecoder<C>
 where
-    C: CharsetCodec<T>,
+    C: CharsetCodec,
 {
     type Error = CharsetDecodeError;
 
@@ -147,7 +146,7 @@ where
     /// Decodes source units into Unicode scalar values while applying malformed policy.
     fn convert(
         &mut self,
-        input: &[T],
+        input: &[C::Unit],
         input_index: usize,
         output: &mut [char],
         output_index: usize,
@@ -159,7 +158,7 @@ where
             ));
         }
         if output_index > output.len() {
-            return Ok(CoderProgress::need_output(0, 0));
+            return Ok(CoderProgress::need_output(0, 0, output_index, 1, 0));
         }
 
         let mut input_cursor = input_index;
@@ -169,6 +168,9 @@ where
                 return Ok(CoderProgress::need_output(
                     input_cursor - input_index,
                     output_cursor - output_index,
+                    output_cursor,
+                    1,
+                    0,
                 ));
             }
             match self.codec.decode_one(input, input_cursor) {
@@ -177,17 +179,24 @@ where
                     input_cursor += consumed;
                     output_cursor += 1;
                 }
-                Ok(DecodeStatus::NeedMore { .. }) => {
+                Ok(DecodeStatus::NeedMore {
+                    required,
+                    available,
+                }) => {
+                    let needed = required.saturating_sub(input_cursor);
                     return Ok(CoderProgress::need_input(
                         input_cursor - input_index,
                         output_cursor - output_index,
+                        input_cursor,
+                        needed,
+                        available,
                     ));
                 }
                 Err(error)
                     if matches!(
                         error.kind(),
-                        CharsetDecodeErrorKind::MalformedSequence
-                            | CharsetDecodeErrorKind::InvalidCodePoint
+                        CharsetDecodeErrorKind::MalformedSequence { .. }
+                            | CharsetDecodeErrorKind::InvalidCodePoint { .. }
                     ) =>
                 {
                     let skip = malformed_skip(input_cursor, input.len(), error.index());

@@ -31,7 +31,13 @@ impl Coder<u8, u8> for CopyCoder {
         if input_index + read == input.len() {
             Ok(CoderProgress::complete(read, written))
         } else {
-            Ok(CoderProgress::need_output(read, written))
+            Ok(CoderProgress::need_output(
+                read,
+                written,
+                output_index + written,
+                1,
+                output.len().saturating_sub(output_index + written),
+            ))
         }
     }
 }

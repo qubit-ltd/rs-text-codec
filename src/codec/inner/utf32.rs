@@ -87,7 +87,12 @@ pub(crate) fn encode_units_char(
     index: usize,
 ) -> CharsetEncodeResult<usize> {
     if index >= output.len() {
-        return Err(CharsetEncodeError::buffer_too_small(Charset::UTF_32, index));
+        return Err(CharsetEncodeError::buffer_too_small(
+            Charset::UTF_32,
+            index,
+            index + 1,
+            0,
+        ));
     }
     output[index] = ch as u32;
     Ok(1)
@@ -162,10 +167,22 @@ pub(crate) fn encode_bytes_char(
 ) -> CharsetEncodeResult<usize> {
     let charset = Charset::from_utf32_byte_order(byte_order);
     if index > output.len() {
-        return Err(CharsetEncodeError::buffer_too_small(charset, index));
+        return Err(CharsetEncodeError::buffer_too_small(
+            charset,
+            index,
+            index + 4,
+            0,
+        ));
     }
-    if output.len() - index < 4 {
-        return Err(CharsetEncodeError::buffer_too_small(charset, output.len()));
+    let required = 4;
+    let available = output.len() - index;
+    if available < required {
+        return Err(CharsetEncodeError::buffer_too_small(
+            charset,
+            index,
+            index + required,
+            available,
+        ));
     }
     output[index..index + 4].copy_from_slice(&byte_order.u32_bytes(ch as u32));
     Ok(4)

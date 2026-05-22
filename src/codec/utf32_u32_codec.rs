@@ -75,7 +75,8 @@ impl Utf32U32Codec {
     }
 }
 
-impl CharsetCodec<u32> for Utf32U32Codec {
+impl CharsetCodec for Utf32U32Codec {
+    type Unit = u32;
     /// Returns UTF-32 charset descriptor.
     ///
     /// # Returns

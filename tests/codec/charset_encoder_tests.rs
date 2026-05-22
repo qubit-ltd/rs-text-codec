@@ -16,7 +16,8 @@ use qubit_text_codec::{
 #[derive(Clone, Copy, Debug, Default)]
 struct AsciiBytesCodec;
 
-impl CharsetCodec<u8> for AsciiBytesCodec {
+impl CharsetCodec for AsciiBytesCodec {
+    type Unit = u8;
     fn charset(&self) -> Charset {
         Charset::ASCII
     }
@@ -60,7 +61,12 @@ impl CharsetCodec<u8> for AsciiBytesCodec {
             ));
         }
         if index >= output.len() {
-            return Err(CharsetEncodeError::buffer_too_small(Charset::ASCII, index));
+            return Err(CharsetEncodeError::buffer_too_small(
+                Charset::ASCII,
+                index,
+                index + 1,
+                0,
+            ));
         }
         output[index] = ch as u8;
         Ok(1)
@@ -70,7 +76,8 @@ impl CharsetCodec<u8> for AsciiBytesCodec {
 #[derive(Clone, Copy, Debug, Default)]
 struct InvalidBangCodec;
 
-impl CharsetCodec<u8> for InvalidBangCodec {
+impl CharsetCodec for InvalidBangCodec {
+    type Unit = u8;
     fn charset(&self) -> Charset {
         Charset::ASCII
     }
@@ -95,7 +102,12 @@ impl CharsetCodec<u8> for InvalidBangCodec {
             ));
         }
         if index >= output.len() {
-            return Err(CharsetEncodeError::buffer_too_small(Charset::ASCII, index));
+            return Err(CharsetEncodeError::buffer_too_small(
+                Charset::ASCII,
+                index,
+                index + 1,
+                0,
+            ));
         }
         output[index] = ch as u8;
         Ok(1)
@@ -150,7 +162,10 @@ fn test_charset_encoder_replaces_reports_and_ignores_unmappable_input() {
         .convert(&input, 1, &mut output, 0)
         .expect_err("report unmappable input");
 
-    assert_eq!(CharsetEncodeErrorKind::UnmappableCharacter, error.kind());
+    assert!(matches!(
+        error.kind(),
+        CharsetEncodeErrorKind::UnmappableCharacter { .. },
+    ));
     assert_eq!(1, error.index());
     assert_eq!(Some('é' as u32), error.value());
 }
@@ -165,7 +180,7 @@ fn test_charset_encoder_reports_need_output_when_replacement_does_not_fit() {
         .convert(&input, 0, &mut output, 0)
         .expect("small output should stop with NeedOutput");
 
-    assert_eq!(CoderStatus::NeedOutput, progress.status());
+    assert!(matches!(progress.status(), CoderStatus::NeedOutput { .. }));
     assert_eq!(1, progress.read());
     assert_eq!(1, progress.written());
     assert_eq!(b"A", &output);
@@ -180,21 +195,24 @@ fn test_charset_encoder_reports_invalid_indices_and_capacity() {
     let error = encoder
         .convert(&input, input.len() + 1, &mut output, 0)
         .expect_err("input index is outside input slice");
-    assert_eq!(CharsetEncodeErrorKind::InvalidInputIndex, error.kind());
+    assert_eq!(
+        CharsetEncodeErrorKind::InvalidInputIndex { input_len: 2 },
+        error.kind()
+    );
     assert_eq!(input.len() + 1, error.index());
 
     let beyond_output = output.len() + 1;
     let progress = encoder
         .convert(&input, 0, &mut output, beyond_output)
         .expect("output index beyond output slice needs more output");
-    assert_eq!(CoderStatus::NeedOutput, progress.status());
+    assert!(matches!(progress.status(), CoderStatus::NeedOutput { .. }));
     assert_eq!(0, progress.read());
     assert_eq!(0, progress.written());
 
     let progress = encoder
         .convert(&input, 0, &mut output, 0)
         .expect("normal encoding stops when output fills");
-    assert_eq!(CoderStatus::NeedOutput, progress.status());
+    assert!(matches!(progress.status(), CoderStatus::NeedOutput { .. }));
     assert_eq!(1, progress.read());
     assert_eq!(1, progress.written());
 }
@@ -210,7 +228,10 @@ fn test_charset_encoder_reports_unmappable_replacement() {
         .convert(&input, 0, &mut output, 0)
         .expect_err("replacement character is unmappable too");
 
-    assert_eq!(CharsetEncodeErrorKind::UnmappableCharacter, error.kind());
+    assert!(matches!(
+        error.kind(),
+        CharsetEncodeErrorKind::UnmappableCharacter { .. },
+    ));
     assert_eq!(0, error.index());
     assert_eq!(Some('é' as u32), error.value());
 }
@@ -225,6 +246,9 @@ fn test_charset_encoder_propagates_non_policy_encoding_errors() {
         .convert(&input, 0, &mut output, 0)
         .expect_err("invalid code point error is not absorbed");
 
-    assert_eq!(CharsetEncodeErrorKind::InvalidCodePoint, error.kind());
+    assert!(matches!(
+        error.kind(),
+        CharsetEncodeErrorKind::InvalidCodePoint { .. },
+    ));
     assert_eq!(Some('!' as u32), error.value());
 }

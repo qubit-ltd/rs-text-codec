@@ -75,15 +75,17 @@ pub(crate) fn decode_units_prefix(
                 value: ch,
                 consumed: 2,
             }),
-            None => Err(CharsetDecodeError::malformed_sequence(
+            None => Err(CharsetDecodeError::malformed_sequence_with_value(
                 Charset::UTF_16,
                 index + 1,
+                second as u32,
             )),
         }
     } else if Utf16::is_low_surrogate(first) {
-        Err(CharsetDecodeError::malformed_sequence(
+        Err(CharsetDecodeError::malformed_sequence_with_value(
             Charset::UTF_16,
             index,
+            first as u32,
         ))
     } else {
         let ch = char::from_u32(first as u32).expect("non-surrogate UTF-16 unit is a scalar value");
@@ -118,14 +120,21 @@ pub(crate) fn encode_units_char(
     index: usize,
 ) -> CharsetEncodeResult<usize> {
     if index > output.len() {
-        return Err(CharsetEncodeError::buffer_too_small(Charset::UTF_16, index));
+        return Err(CharsetEncodeError::buffer_too_small(
+            Charset::UTF_16,
+            index,
+            index + 1,
+            0,
+        ));
     }
     let length = Utf16::unit_len(ch);
     let available = output.len() - index;
     if available < length {
         return Err(CharsetEncodeError::buffer_too_small(
             Charset::UTF_16,
-            output.len(),
+            index,
+            index + length,
+            available,
         ));
     }
     let code_point = ch as u32;
@@ -191,10 +200,18 @@ pub(crate) fn decode_bytes_prefix(
                 value: ch,
                 consumed: 4,
             }),
-            None => Err(CharsetDecodeError::malformed_sequence(charset, index + 2)),
+            None => Err(CharsetDecodeError::malformed_sequence_with_value(
+                charset,
+                index + 2,
+                second as u32,
+            )),
         }
     } else if Utf16::is_low_surrogate(first) {
-        Err(CharsetDecodeError::malformed_sequence(charset, index))
+        Err(CharsetDecodeError::malformed_sequence_with_value(
+            charset,
+            index,
+            first as u32,
+        ))
     } else {
         let ch = char::from_u32(first as u32).expect("non-surrogate UTF-16 unit is a scalar value");
         Ok(DecodeStatus::Complete {
@@ -231,12 +248,22 @@ pub(crate) fn encode_bytes_char(
 ) -> CharsetEncodeResult<usize> {
     let charset = Charset::from_utf16_byte_order(byte_order);
     if index > output.len() {
-        return Err(CharsetEncodeError::buffer_too_small(charset, index));
+        return Err(CharsetEncodeError::buffer_too_small(
+            charset,
+            index,
+            index + 2,
+            0,
+        ));
     }
     let required = Utf16::unit_len(ch) * 2;
     let available = output.len() - index;
     if available < required {
-        return Err(CharsetEncodeError::buffer_too_small(charset, output.len()));
+        return Err(CharsetEncodeError::buffer_too_small(
+            charset,
+            index,
+            index + required,
+            available,
+        ));
     }
     let mut units = [0_u16; Utf16::MAX_UNITS_PER_CHAR];
     let unit_count = encode_units_char(ch, &mut units, 0)?;

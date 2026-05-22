@@ -11,9 +11,160 @@ use super::coder_progress::CoderProgress;
 
 /// Converts one sequence of code units into another sequence of code units.
 ///
+/// `convert` is the main streaming API. It transforms a provided input segment and
+/// writes as much output as available buffer space allows, without automatically
+/// flushing internal pending state.
+///
+/// The method is suitable for:
+/// - pull-style consumers that call conversion repeatedly as buffers arrive;
+/// - bounded output sinks that need `NeedOutput` progress when capacity is hit;
+/// - stateless and stateful codecs that all return progress-oriented stopping
+///   reasons.
+///
+/// `Coder` is intentionally independent from any charset semantics:
+///
+/// - Use `Coder` directly for custom, policy-free unit transforms.
+/// - Use [`crate::CharsetDecoder`], [`crate::CharsetEncoder`], or
+///   [`crate::CharsetConverter`] when text semantics are required.
+/// - Use `Coder` when you want to own malformed/unmappable decisions at the call site.
+///
+/// # Example: raw unit transform
+///
+/// # Example
+///
+/// ```rust
+/// use qubit_text_codec::{Coder, CoderProgress, CoderStatus};
+///
+/// #[derive(Default)]
+/// struct ByteCopy;
+///
+/// impl Coder<u8, u8> for ByteCopy {
+///     type Error = core::convert::Infallible;
+///
+///     fn max_output_len(&self, input_len: usize) -> Option<usize> {
+///         Some(input_len)
+///     }
+///
+///     fn convert(
+///         &mut self,
+///         input: &[u8],
+///         input_index: usize,
+///         output: &mut [u8],
+///         output_index: usize,
+///     ) -> Result<CoderProgress, Self::Error> {
+///         let mut read = 0;
+///         let mut written = 0;
+///         while input_index + read < input.len() && output_index + written < output.len() {
+///             output[output_index + written] = input[input_index + read];
+///             read += 1;
+///             written += 1;
+///         }
+///         if input_index + read == input.len() {
+///             Ok(CoderProgress::complete(read, written))
+///         } else {
+///             Ok(CoderProgress::need_output(
+///                 read,
+///                 written,
+///                 output_index + written,
+///                 1,
+///                 output.len().saturating_sub(output_index + written),
+///             ))
+///         }
+///     }
+/// }
+///
+/// let mut coder = ByteCopy;
+/// let mut output = [0_u8; 2];
+/// let progress = coder
+///     .convert(&[1, 2, 3], 0, &mut output, 0)
+///     .expect("convert works on partial output");
+/// assert!(matches!(progress.status(), CoderStatus::NeedOutput { .. }));
+/// assert_eq!(2, progress.read());
+/// assert_eq!(2, progress.written());
+/// assert_eq!([1, 2], output);
+/// ```
+///
 /// The trait is intentionally independent from charset concepts. Implementors
 /// use `input_index` and `output_index` as absolute positions in the supplied
 /// slices. Returned progress counters are relative counts from those positions.
+/// For raw codecs this gives a compact API; for text workflows the wrapped codec
+/// types add charset policies and better naming around Unicode decoding and
+/// encoding behavior.
+///
+/// Use `Coder` directly when you need a byte/word-buffer converter without any
+/// charset policy coupling:
+///
+/// ```rust
+/// use qubit_text_codec::{Coder, CoderProgress, CoderStatus};
+///
+/// #[derive(Default)]
+/// struct ByteCopy;
+///
+/// impl Coder<u8, u8> for ByteCopy {
+///     type Error = core::convert::Infallible;
+///
+///     fn max_output_len(&self, input_len: usize) -> Option<usize> {
+///         Some(input_len)
+///     }
+///
+///     fn convert(
+///         &mut self,
+///         input: &[u8],
+///         input_index: usize,
+///         output: &mut [u8],
+///         output_index: usize,
+///     ) -> Result<CoderProgress, Self::Error> {
+///         let mut read = 0;
+///         let mut written = 0;
+///         while input_index + read < input.len() && output_index + written < output.len() {
+///             output[output_index + written] = input[input_index + read];
+///             read += 1;
+///             written += 1;
+///         }
+///         if input_index + read == input.len() {
+///             Ok(CoderProgress::complete(read, written))
+///         } else {
+///             Ok(CoderProgress::need_output(
+///                 read,
+///                 written,
+///                 output_index + written,
+///                 1,
+///                 output.len().saturating_sub(output_index + written),
+///             ))
+///         }
+///     }
+/// }
+///
+/// let mut coder = ByteCopy;
+/// let mut output = [0_u8; 1];
+/// let progress = coder
+///     .convert(&[1], 0, &mut output, 0)
+///     .expect("convert works on partial output");
+/// assert!(matches!(progress.status(), CoderStatus::Complete));
+/// ```
+///
+/// Use charset helpers when you need text policy:
+///
+/// ```rust
+/// use qubit_text_codec::{CharsetCodec, CharsetDecoder, CharsetEncoder, CoderStatus, Utf16U16Codec, Utf8Codec};
+/// use qubit_text_codec::Coder;
+///
+/// # fn main() -> Result<(), qubit_text_codec::CharsetDecodeError> {
+/// let mut decoder = CharsetDecoder::new(Utf8Codec);
+/// let mut chars = ['\0'; 1];
+/// let progress = decoder.convert("Z".as_bytes(), 0, &mut chars, 0)?;
+/// assert_eq!(CoderStatus::Complete, progress.status());
+/// assert_eq!('Z', chars[0]);
+///
+/// let mut encoder = CharsetEncoder::new(Utf16U16Codec);
+/// let mut utf16 = [0_u16; Utf16U16Codec.max_units_per_char() as usize];
+/// let progress = encoder.convert(&['Z'], 0, &mut utf16, 0).expect("encode should fit");
+/// assert_eq!(CoderStatus::Complete, progress.status());
+/// assert_eq!(1, progress.written());
+///
+/// # Ok(())
+/// # }
+/// ```
 ///
 /// # Type Parameters
 ///
@@ -69,6 +220,66 @@ pub trait Coder<Input, Output> {
     ) -> Result<CoderProgress, Self::Error>;
 
     /// Flushes any buffered output after input conversion is complete.
+    ///
+    /// `convert` handles input consumption. `finish` is called only after all
+    /// source input has been provided and is used to flush buffered state
+    /// (for example, a pending decoded character).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use qubit_text_codec::{Coder, CoderStatus};
+    ///
+    /// #[derive(Default)]
+    /// struct ByteCopy;
+    ///
+    /// impl Coder<u8, u8> for ByteCopy {
+    ///     type Error = core::convert::Infallible;
+    ///
+    ///     fn max_output_len(&self, input_len: usize) -> Option<usize> {
+    ///         Some(input_len)
+    ///     }
+    ///
+    ///     fn convert(
+    ///         &mut self,
+    ///         input: &[u8],
+    ///         input_index: usize,
+    ///         output: &mut [u8],
+    ///         output_index: usize,
+    ///     ) -> Result<qubit_text_codec::CoderProgress, Self::Error> {
+    ///         let mut read = 0;
+    ///         let mut written = 0;
+    ///         while input_index + read < input.len() && output_index + written < output.len() {
+    ///             output[output_index + written] = input[input_index + read];
+    ///             read += 1;
+    ///             written += 1;
+    ///         }
+    ///         if input_index + read == input.len() {
+    ///             Ok(qubit_text_codec::CoderProgress::complete(read, written))
+    ///         } else {
+    ///             Ok(qubit_text_codec::CoderProgress::need_output(
+    ///                 read,
+    ///                 written,
+    ///                 output_index + written,
+    ///                 1,
+    ///                 output.len().saturating_sub(output_index + written),
+    ///             ))
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// let mut coder = ByteCopy;
+    /// let mut output = [1_u8; 1];
+    /// let progress = coder
+    ///     .convert(&[7], 0, &mut output, 0)
+    ///     .expect("writer consumes one unit");
+    /// assert_eq!(CoderStatus::Complete, progress.status());
+    ///
+    /// let finish = coder
+    ///     .finish(&mut output, 1)
+    ///     .expect("finish does not emit buffered state for no-op coders");
+    /// assert_eq!(CoderStatus::Complete, finish.status());
+    /// ```
     ///
     /// # Parameters
     ///

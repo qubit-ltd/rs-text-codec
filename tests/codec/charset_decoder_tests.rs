@@ -17,7 +17,8 @@ use qubit_text_codec::{
 #[derive(Clone, Copy, Debug, Default)]
 struct IncompleteErrorCodec;
 
-impl CharsetCodec<u8> for IncompleteErrorCodec {
+impl CharsetCodec for IncompleteErrorCodec {
+    type Unit = u8;
     fn charset(&self) -> Charset {
         Charset::ASCII
     }
@@ -30,6 +31,8 @@ impl CharsetCodec<u8> for IncompleteErrorCodec {
         Err(CharsetDecodeError::incomplete_sequence(
             Charset::ASCII,
             index,
+            index + 1,
+            0,
         ))
     }
 
@@ -42,6 +45,8 @@ impl CharsetCodec<u8> for IncompleteErrorCodec {
         Err(qubit_text_codec::CharsetEncodeError::buffer_too_small(
             Charset::ASCII,
             index,
+            index + 1,
+            0,
         ))
     }
 }
@@ -94,7 +99,10 @@ fn test_charset_decoder_replaces_reports_and_ignores_malformed_input() {
         .convert(&input, 1, &mut output, 0)
         .expect_err("report malformed input");
 
-    assert_eq!(CharsetDecodeErrorKind::MalformedSequence, error.kind());
+    assert_eq!(
+        CharsetDecodeErrorKind::MalformedSequence { value: Some(0x80) },
+        error.kind()
+    );
     assert_eq!(1, error.index());
 }
 
@@ -107,28 +115,31 @@ fn test_charset_decoder_reports_invalid_indices_capacity_and_need_input() {
     let error = decoder
         .convert(input, input.len() + 1, &mut output, 0)
         .expect_err("input index outside input slice");
-    assert_eq!(CharsetDecodeErrorKind::MalformedSequence, error.kind());
+    assert_eq!(
+        CharsetDecodeErrorKind::MalformedSequence { value: None },
+        error.kind()
+    );
     assert_eq!(input.len() + 1, error.index());
 
     let beyond_output = output.len() + 1;
     let progress = decoder
         .convert(input, 0, &mut output, beyond_output)
         .expect("output index beyond output slice needs more output");
-    assert_eq!(CoderStatus::NeedOutput, progress.status());
+    assert!(matches!(progress.status(), CoderStatus::NeedOutput { .. }));
     assert_eq!(0, progress.read());
     assert_eq!(0, progress.written());
 
     let progress = decoder
         .convert(input, 0, &mut output, 0)
         .expect("decoder stops when output buffer fills");
-    assert_eq!(CoderStatus::NeedOutput, progress.status());
+    assert!(matches!(progress.status(), CoderStatus::NeedOutput { .. }));
     assert_eq!(1, progress.read());
     assert_eq!(1, progress.written());
 
     let progress = decoder
         .convert(&[0xe4], 0, &mut output, 0)
         .expect("incomplete UTF-8 prefix needs input");
-    assert_eq!(CoderStatus::NeedInput, progress.status());
+    assert!(matches!(progress.status(), CoderStatus::NeedInput { .. }));
     assert_eq!(0, progress.read());
     assert_eq!(0, progress.written());
 }
@@ -170,6 +181,9 @@ fn test_charset_decoder_propagates_non_policy_decoding_errors() {
         .convert(&input, 0, &mut output, 0)
         .expect_err("incomplete-sequence error is not absorbed");
 
-    assert_eq!(CharsetDecodeErrorKind::IncompleteSequence, error.kind());
+    assert!(matches!(
+        error.kind(),
+        CharsetDecodeErrorKind::IncompleteSequence { .. },
+    ));
     assert_eq!(0, error.index());
 }

@@ -5,7 +5,7 @@ use qubit_text_codec::{
 
 fn assert_charset_codec<T>(_codec: &T)
 where
-    T: CharsetCodec<u8>,
+    T: CharsetCodec<Unit = u8>,
 {
 }
 

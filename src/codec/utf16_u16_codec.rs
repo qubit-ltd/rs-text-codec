@@ -75,7 +75,8 @@ impl Utf16U16Codec {
     }
 }
 
-impl CharsetCodec<u16> for Utf16U16Codec {
+impl CharsetCodec for Utf16U16Codec {
+    type Unit = u16;
     /// Returns UTF-16 charset descriptor.
     ///
     /// # Returns

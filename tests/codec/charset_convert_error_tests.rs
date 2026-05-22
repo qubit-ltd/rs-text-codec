@@ -15,7 +15,12 @@ fn test_charset_convert_error_wraps_decode_and_encode_errors() {
             .contains("Failed to decode source charset")
     );
 
-    let encode = CharsetConvertError::from(CharsetEncodeError::buffer_too_small(Charset::UTF_8, 4));
+    let encode = CharsetConvertError::from(CharsetEncodeError::buffer_too_small(
+        Charset::UTF_8,
+        4,
+        4,
+        0,
+    ));
     assert!(
         encode
             .to_string()

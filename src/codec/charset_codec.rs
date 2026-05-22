@@ -22,12 +22,18 @@ use super::decode_status::DecodeStatus;
 /// unmappable characters are handled by [`crate::CharsetDecoder`] and
 /// [`crate::CharsetEncoder`].
 ///
-/// # Type Parameters
+/// # Associated Types
 ///
-/// - `T`: Storage unit used by the encoded representation, such as `u8` for
+/// - `Unit`: Storage unit used by the encoded representation, such as `u8` for
 ///   byte-oriented charsets, `u16` for UTF-16 code units, or `u32` for UTF-32
 ///   code units.
-pub trait CharsetCodec<T> {
+pub trait CharsetCodec {
+    /// Storage unit used by the encoded representation.
+    ///
+    /// `u8` is used by byte-oriented codecs such as UTF-8 and Latin-1;
+    /// `u16` is used by UTF-16 code-unit codecs; `u32` is used by UTF-32
+    /// code-unit codecs.
+    type Unit;
     /// Returns the charset handled by this codec.
     ///
     /// # Returns
@@ -61,7 +67,7 @@ pub trait CharsetCodec<T> {
     ///
     /// Returns [`crate::CharsetDecodeError`] when the sequence at `index` is
     /// malformed or decodes to a non-scalar value.
-    fn decode_one(&self, input: &[T], index: usize) -> CharsetDecodeResult<DecodeStatus>;
+    fn decode_one(&self, input: &[Self::Unit], index: usize) -> CharsetDecodeResult<DecodeStatus>;
 
     /// Encodes one Unicode scalar value into `output` starting at `index`.
     ///
@@ -79,5 +85,10 @@ pub trait CharsetCodec<T> {
     ///
     /// Returns [`crate::CharsetEncodeError`] when `ch` cannot be represented by
     /// this charset or `output` does not have enough capacity from `index`.
-    fn encode_one(&self, ch: char, output: &mut [T], index: usize) -> CharsetEncodeResult<usize>;
+    fn encode_one(
+        &self,
+        ch: char,
+        output: &mut [Self::Unit],
+        index: usize,
+    ) -> CharsetEncodeResult<usize>;
 }

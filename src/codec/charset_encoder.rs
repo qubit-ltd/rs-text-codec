@@ -7,8 +7,6 @@
  *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
-use core::marker::PhantomData;
-
 use crate::{
     CharsetEncodeError,
     CharsetEncodeErrorKind,
@@ -32,21 +30,23 @@ use super::{
 ///
 /// - `C`: Low-level charset codec used to encode one character into target
 ///   storage units.
-/// - `T`: Target storage unit type produced by the encoder, such as `u8`,
-///   `u16`, or `u32`.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CharsetEncoder<C, T> {
+pub struct CharsetEncoder<C>
+where
+    C: CharsetCodec,
+{
     /// Low-level codec used for target encoding.
     codec: C,
     /// Action used for unmappable input characters.
     unmappable_action: UnmappableAction,
     /// Replacement character used by [`UnmappableAction::Replace`].
     replacement: char,
-    /// Storage unit marker for the target buffer.
-    unit: PhantomData<fn() -> T>,
 }
 
-impl<C, T> CharsetEncoder<C, T> {
+impl<C> CharsetEncoder<C>
+where
+    C: CharsetCodec,
+{
     /// Creates an encoder with default replacement policy.
     ///
     /// # Parameters
@@ -64,7 +64,6 @@ impl<C, T> CharsetEncoder<C, T> {
             codec,
             unmappable_action: UnmappableAction::Replace,
             replacement: '?',
-            unit: PhantomData,
         }
     }
 
@@ -133,9 +132,9 @@ impl<C, T> CharsetEncoder<C, T> {
     }
 }
 
-impl<C, T> Coder<char, T> for CharsetEncoder<C, T>
+impl<C> Coder<char, C::Unit> for CharsetEncoder<C>
 where
-    C: CharsetCodec<T>,
+    C: CharsetCodec,
 {
     type Error = CharsetEncodeError;
 
@@ -150,17 +149,18 @@ where
         &mut self,
         input: &[char],
         input_index: usize,
-        output: &mut [T],
+        output: &mut [C::Unit],
         output_index: usize,
     ) -> Result<CoderProgress, Self::Error> {
         if input_index > input.len() {
-            return Err(CharsetEncodeError::invalid_input_index(
+            return Err(CharsetEncodeError::invalid_input_index_with_len(
                 self.codec.charset(),
                 input_index,
+                input.len(),
             ));
         }
         if output_index > output.len() {
-            return Ok(CoderProgress::need_output(0, 0));
+            return Ok(CoderProgress::need_output(0, 0, output_index, 1, 0));
         }
 
         let mut input_cursor = input_index;
@@ -172,13 +172,28 @@ where
                     input_cursor += 1;
                     output_cursor += written;
                 }
-                Err(error) if error.kind() == CharsetEncodeErrorKind::BufferTooSmall => {
+                Err(error)
+                    if matches!(error.kind(), CharsetEncodeErrorKind::BufferTooSmall { .. }) =>
+                {
+                    let required = error
+                        .required()
+                        .unwrap_or(output_cursor + 1)
+                        .saturating_sub(output_cursor);
+                    let available = error.available().unwrap_or(0);
                     return Ok(CoderProgress::need_output(
                         input_cursor - input_index,
                         output_cursor - output_index,
+                        output_cursor,
+                        required,
+                        available,
                     ));
                 }
-                Err(error) if error.kind() == CharsetEncodeErrorKind::UnmappableCharacter => {
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        CharsetEncodeErrorKind::UnmappableCharacter { value: _ }
+                    ) =>
+                {
                     match self.unmappable_action {
                         UnmappableAction::Report => {
                             return Err(CharsetEncodeError::unmappable_character(
@@ -198,11 +213,22 @@ where
                             ) {
                                 Ok(written) => written,
                                 Err(error)
-                                    if error.kind() == CharsetEncodeErrorKind::BufferTooSmall =>
+                                    if matches!(
+                                        error.kind(),
+                                        CharsetEncodeErrorKind::BufferTooSmall { .. }
+                                    ) =>
                                 {
+                                    let required = error
+                                        .required()
+                                        .unwrap_or(output_cursor + 1)
+                                        .saturating_sub(output_cursor);
+                                    let available = error.available().unwrap_or(0);
                                     return Ok(CoderProgress::need_output(
                                         input_cursor - input_index,
                                         output_cursor - output_index,
+                                        output_cursor,
+                                        required,
+                                        available,
                                     ));
                                 }
                                 Err(error) => return Err(error),
@@ -224,7 +250,10 @@ where
     }
 }
 
-impl<C, T> CharsetEncoder<C, T> {
+impl<C> CharsetEncoder<C>
+where
+    C: CharsetCodec,
+{
     /// Encodes the configured replacement character.
     ///
     /// # Parameters
@@ -244,26 +273,38 @@ impl<C, T> CharsetEncoder<C, T> {
     #[inline]
     fn encode_replacement(
         &self,
-        output: &mut [T],
+        output: &mut [C::Unit],
         output_index: usize,
         input_index: usize,
-    ) -> CharsetEncodeResult<usize>
-    where
-        C: CharsetCodec<T>,
-    {
+    ) -> CharsetEncodeResult<usize> {
         match self
             .codec
             .encode_one(self.replacement, output, output_index)
         {
             Ok(written) => Ok(written),
-            Err(error) if error.kind() == CharsetEncodeErrorKind::BufferTooSmall => Err(
-                CharsetEncodeError::buffer_too_small(self.codec.charset(), error.index()),
-            ),
-            Err(_) => Err(CharsetEncodeError::unmappable_character(
-                self.codec.charset(),
-                input_index,
-                self.replacement as u32,
-            )),
+            Err(error) if matches!(error.kind(), CharsetEncodeErrorKind::BufferTooSmall { .. }) => {
+                let required = error.required().unwrap_or(output_index + 1);
+                let available = error.available().unwrap_or(0);
+                Err(CharsetEncodeError::buffer_too_small(
+                    self.codec.charset(),
+                    output_index,
+                    required,
+                    available,
+                ))
+            }
+            Err(error) => {
+                if matches!(
+                    error.kind(),
+                    CharsetEncodeErrorKind::UnmappableCharacter { value: _ }
+                ) {
+                    return Err(CharsetEncodeError::unmappable_character(
+                        self.codec.charset(),
+                        input_index,
+                        self.replacement as u32,
+                    ));
+                }
+                Err(error)
+            }
         }
     }
 }

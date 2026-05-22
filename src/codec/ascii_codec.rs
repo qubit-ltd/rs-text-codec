@@ -49,7 +49,8 @@ impl AsciiCodec {
     }
 }
 
-impl CharsetCodec<u8> for AsciiCodec {
+impl CharsetCodec for AsciiCodec {
+    type Unit = u8;
     /// Returns the charset descriptor for this codec.
     ///
     /// # Returns
@@ -104,9 +105,10 @@ impl CharsetCodec<u8> for AsciiCodec {
 
         let value = input[index];
         if value > Ascii::MAX_BYTE {
-            return Err(CharsetDecodeError::malformed_sequence(
+            return Err(CharsetDecodeError::malformed_sequence_with_value(
                 Charset::ASCII,
                 index,
+                value as u32,
             ));
         }
 
@@ -135,7 +137,12 @@ impl CharsetCodec<u8> for AsciiCodec {
     #[inline]
     fn encode_one(&self, ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
         if index >= output.len() {
-            return Err(CharsetEncodeError::buffer_too_small(Charset::ASCII, index));
+            return Err(CharsetEncodeError::buffer_too_small(
+                Charset::ASCII,
+                index,
+                index + 1,
+                0,
+            ));
         }
 
         if ch > Ascii::MAX_CHAR {

@@ -57,9 +57,10 @@ pub(crate) fn decode_prefix(input: &[u8], index: usize) -> CharsetDecodeResult<D
     let length = match Utf8::byte_len_from_leading_byte(first) {
         Some(length) => length,
         None => {
-            return Err(CharsetDecodeError::malformed_sequence(
+            return Err(CharsetDecodeError::malformed_sequence_with_value(
                 Charset::UTF_8,
                 index,
+                first as u32,
             ));
         }
     };
@@ -105,14 +106,21 @@ pub(crate) fn decode_prefix(input: &[u8], index: usize) -> CharsetDecodeResult<D
 ///   space starting from `index`.
 pub(crate) fn encode_char(ch: char, output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
     if index > output.len() {
-        return Err(CharsetEncodeError::buffer_too_small(Charset::UTF_8, index));
+        return Err(CharsetEncodeError::buffer_too_small(
+            Charset::UTF_8,
+            index,
+            index + 1,
+            0,
+        ));
     }
     let length = Utf8::byte_len(ch);
     let available = output.len() - index;
     if available < length {
         return Err(CharsetEncodeError::buffer_too_small(
             Charset::UTF_8,
-            output.len(),
+            index,
+            index + length,
+            available,
         ));
     }
     let mut scratch = [0_u8; Utf8::MAX_BYTES_PER_CHAR];
@@ -139,9 +147,10 @@ pub(crate) fn encode_char(ch: char, output: &mut [u8], index: usize) -> CharsetE
 pub(crate) fn decode_two(input: &[u8], index: usize) -> CharsetDecodeResult<u32> {
     let second = input[index + 1];
     if !Utf8::is_continuation_byte(second) {
-        return Err(CharsetDecodeError::malformed_sequence(
+        return Err(CharsetDecodeError::malformed_sequence_with_value(
             Charset::UTF_8,
             index + 1,
+            second as u32,
         ));
     }
     Ok((((input[index] & 0x1f) as u32) << 6) | ((second & 0x3f) as u32))
@@ -163,15 +172,17 @@ pub(crate) fn decode_two(input: &[u8], index: usize) -> CharsetDecodeResult<u32>
 /// decoding error describing the first malformed position.
 pub(crate) fn validate_partial(input: &[u8], index: usize) -> CharsetDecodeResult<()> {
     if input.len() >= index + 2 && !is_valid_second_byte(input[index], input[index + 1]) {
-        return Err(CharsetDecodeError::malformed_sequence(
+        return Err(CharsetDecodeError::malformed_sequence_with_value(
             Charset::UTF_8,
             index + 1,
+            input[index + 1] as u32,
         ));
     }
     if input.len() >= index + 3 && !Utf8::is_continuation_byte(input[index + 2]) {
-        return Err(CharsetDecodeError::malformed_sequence(
+        return Err(CharsetDecodeError::malformed_sequence_with_value(
             Charset::UTF_8,
             index + 2,
+            input[index + 2] as u32,
         ));
     }
     Ok(())
@@ -220,15 +231,17 @@ pub(crate) fn decode_three(input: &[u8], index: usize) -> CharsetDecodeResult<u3
     let second = input[index + 1];
     let third = input[index + 2];
     if !is_valid_second_byte(first, second) {
-        return Err(CharsetDecodeError::malformed_sequence(
+        return Err(CharsetDecodeError::malformed_sequence_with_value(
             Charset::UTF_8,
             index + 1,
+            second as u32,
         ));
     }
     if !Utf8::is_continuation_byte(third) {
-        return Err(CharsetDecodeError::malformed_sequence(
+        return Err(CharsetDecodeError::malformed_sequence_with_value(
             Charset::UTF_8,
             index + 2,
+            third as u32,
         ));
     }
     Ok((((first & 0x0f) as u32) << 12) | (((second & 0x3f) as u32) << 6) | ((third & 0x3f) as u32))
@@ -254,21 +267,24 @@ pub(crate) fn decode_four(input: &[u8], index: usize) -> CharsetDecodeResult<u32
     let third = input[index + 2];
     let fourth = input[index + 3];
     if !is_valid_second_byte(first, second) {
-        return Err(CharsetDecodeError::malformed_sequence(
+        return Err(CharsetDecodeError::malformed_sequence_with_value(
             Charset::UTF_8,
             index + 1,
+            second as u32,
         ));
     }
     if !Utf8::is_continuation_byte(third) {
-        return Err(CharsetDecodeError::malformed_sequence(
+        return Err(CharsetDecodeError::malformed_sequence_with_value(
             Charset::UTF_8,
             index + 2,
+            third as u32,
         ));
     }
     if !Utf8::is_continuation_byte(fourth) {
-        return Err(CharsetDecodeError::malformed_sequence(
+        return Err(CharsetDecodeError::malformed_sequence_with_value(
             Charset::UTF_8,
             index + 3,
+            fourth as u32,
         ));
     }
     Ok((((first & 0x07) as u32) << 18)

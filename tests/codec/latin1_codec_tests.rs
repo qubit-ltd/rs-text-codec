@@ -12,10 +12,28 @@ use qubit_text_codec::{
 fn test_latin1_codec_exposes_identity_and_limits() {
     let codec = Latin1Codec;
 
+    assert_eq!(
+        Charset::ISO_8859_1,
+        <Latin1Codec as CharsetCodec>::charset(&codec)
+    );
+    assert_eq!(1, <Latin1Codec as CharsetCodec>::max_units_per_char(&codec));
+    assert_eq!(
+        DecodeStatus::NeedMore {
+            required: 1,
+            available: 0,
+        },
+        <Latin1Codec as CharsetCodec>::decode_one(&codec, &[], 0).expect("latin1 need more"),
+    );
+    assert_eq!(
+        1,
+        <Latin1Codec as CharsetCodec>::encode_one(&codec, 'A', &mut [0_u8; 1], 0)
+            .expect("encode latin1"),
+    );
+
     assert_eq!(Charset::ISO_8859_1, codec.charset());
     assert_eq!(1, codec.max_units_per_char());
-    assert_eq!(1, CharsetCodec::<u8>::max_units_per_char(&codec));
-    assert_eq!(Charset::ISO_8859_1, CharsetCodec::charset(&codec));
+    assert_eq!(1, codec.max_units_per_char());
+    assert_eq!(Charset::ISO_8859_1, codec.charset());
 }
 
 #[test]
@@ -61,7 +79,10 @@ fn test_latin1_codec_reports_errors_for_invalid_indices_and_unmappable_character
     let error = codec
         .decode_one(&[0x41], 2)
         .expect_err("index out of range is malformed");
-    assert_eq!(CharsetDecodeErrorKind::MalformedSequence, error.kind());
+    assert_eq!(
+        CharsetDecodeErrorKind::MalformedSequence { value: None },
+        error.kind()
+    );
 
     assert_eq!(
         1,
@@ -74,12 +95,18 @@ fn test_latin1_codec_reports_errors_for_invalid_indices_and_unmappable_character
     let error = codec
         .encode_one('\u{0100}', &mut output, 0)
         .expect_err("above Latin-1 is unmappable");
-    assert_eq!(CharsetEncodeErrorKind::UnmappableCharacter, error.kind());
+    assert!(matches!(
+        error.kind(),
+        CharsetEncodeErrorKind::UnmappableCharacter { .. },
+    ));
     assert_eq!(Some('\u{0100}' as u32), error.value());
 
     let error = codec
         .encode_one('\u{00a9}', &mut output, 1)
         .expect_err("output index out of range");
-    assert_eq!(CharsetEncodeErrorKind::BufferTooSmall, error.kind());
+    assert!(matches!(
+        error.kind(),
+        CharsetEncodeErrorKind::BufferTooSmall { .. },
+    ));
     assert_eq!(1, error.index());
 }

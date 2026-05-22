@@ -71,7 +71,8 @@ impl Utf8Codec {
     }
 }
 
-impl CharsetCodec<u8> for Utf8Codec {
+impl CharsetCodec for Utf8Codec {
+    type Unit = u8;
     /// Returns UTF-8 charset descriptor.
     ///
     /// # Returns

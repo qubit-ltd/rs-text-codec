@@ -64,14 +64,29 @@ impl CoderProgress {
     ///
     /// - `read`: Number of consumed input units.
     /// - `written`: Number of produced output units.
+    /// - `index`: Absolute input index where input ended while decoding.
     ///
     /// # Returns
     ///
     /// Returns a progress value whose status is [`CoderStatus::NeedInput`].
     #[must_use]
     #[inline]
-    pub const fn need_input(read: usize, written: usize) -> Self {
-        Self::new(CoderStatus::NeedInput, read, written)
+    pub const fn need_input(
+        read: usize,
+        written: usize,
+        index: usize,
+        required: usize,
+        available: usize,
+    ) -> Self {
+        Self::new(
+            CoderStatus::NeedInput {
+                input_index: index,
+                required,
+                available,
+            },
+            read,
+            written,
+        )
     }
 
     /// Creates a need-output progress value.
@@ -80,14 +95,29 @@ impl CoderProgress {
     ///
     /// - `read`: Number of consumed input units.
     /// - `written`: Number of produced output units.
+    /// - `index`: Absolute output index where output ended while decoding.
     ///
     /// # Returns
     ///
     /// Returns a progress value whose status is [`CoderStatus::NeedOutput`].
     #[must_use]
     #[inline]
-    pub const fn need_output(read: usize, written: usize) -> Self {
-        Self::new(CoderStatus::NeedOutput, read, written)
+    pub const fn need_output(
+        read: usize,
+        written: usize,
+        index: usize,
+        required: usize,
+        available: usize,
+    ) -> Self {
+        Self::new(
+            CoderStatus::NeedOutput {
+                output_index: index,
+                required,
+                available,
+            },
+            read,
+            written,
+        )
     }
 
     /// Returns the status that stopped conversion.
@@ -121,5 +151,50 @@ impl CoderProgress {
     #[inline]
     pub const fn written(self) -> usize {
         self.written
+    }
+
+    /// Returns the additional unit count required by the reported status.
+    ///
+    /// # Returns
+    ///
+    /// Returns `0` when conversion completed.
+    #[must_use]
+    #[inline]
+    pub const fn required(self) -> usize {
+        match self.status {
+            CoderStatus::Complete => 0,
+            CoderStatus::NeedInput { required, .. } => required,
+            CoderStatus::NeedOutput { required, .. } => required,
+        }
+    }
+
+    /// Returns the absolute boundary index associated with this status, if any.
+    ///
+    /// - For [`CoderStatus::NeedInput`], returns `input_index`.
+    /// - For [`CoderStatus::NeedOutput`], returns `output_index`.
+    /// - For [`CoderStatus::Complete`], returns `None`.
+    #[must_use]
+    #[inline]
+    pub const fn index(self) -> Option<usize> {
+        match self.status {
+            CoderStatus::Complete => None,
+            CoderStatus::NeedInput { input_index, .. } => Some(input_index),
+            CoderStatus::NeedOutput { output_index, .. } => Some(output_index),
+        }
+    }
+
+    /// Returns the number of available units at the reported status boundary.
+    ///
+    /// # Returns
+    ///
+    /// Returns `0` when conversion completed.
+    #[must_use]
+    #[inline]
+    pub const fn available(self) -> usize {
+        match self.status {
+            CoderStatus::Complete => 0,
+            CoderStatus::NeedInput { available, .. } => available,
+            CoderStatus::NeedOutput { available, .. } => available,
+        }
     }
 }

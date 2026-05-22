@@ -35,7 +35,7 @@ fn test_prelude_reexports_common_types() {
     );
 
     let utf8 = Utf8Codec;
-    assert_eq!(Charset::UTF_8, CharsetCodec::<u8>::charset(&utf8));
+    assert_eq!(Charset::UTF_8, utf8.charset());
     assert!(matches!(
         utf8.decode_one("A".as_bytes(), 0).expect("UTF-8 prefix"),
         DecodeStatus::Complete { .. },
@@ -48,7 +48,7 @@ fn test_prelude_reexports_common_types() {
     assert_eq!(CoderStatus::Complete, progress.status());
 
     let utf16 = Utf16ByteCodec::new(ByteOrder::BigEndian);
-    assert_eq!(Charset::UTF_16BE, CharsetCodec::<u8>::charset(&utf16));
+    assert_eq!(Charset::UTF_16BE, utf16.charset());
 
     let utf32 = Utf32ByteCodec::new(ByteOrder::LittleEndian);
     let mut encoder = CharsetEncoder::new(utf32);
@@ -56,9 +56,6 @@ fn test_prelude_reexports_common_types() {
     let progress = encoder
         .convert(&['A'], 0, &mut output, 0)
         .expect("policy encoder");
-    assert_eq!(
-        Charset::UTF_32LE,
-        CharsetCodec::<u8>::charset(encoder.codec())
-    );
+    assert_eq!(Charset::UTF_32LE, encoder.codec().charset());
     assert_eq!(CoderStatus::Complete, progress.status());
 }

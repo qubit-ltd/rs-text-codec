@@ -107,7 +107,8 @@ impl Utf32ByteCodec {
     }
 }
 
-impl CharsetCodec<u8> for Utf32ByteCodec {
+impl CharsetCodec for Utf32ByteCodec {
+    type Unit = u8;
     /// Returns the fixed-endian UTF-32 charset for the configured byte order.
     ///
     /// # Returns
