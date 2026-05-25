@@ -46,6 +46,35 @@ impl CharsetCodec for IncompleteErrorCodec {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+struct InvalidDecodeStatusCodec {
+    status: DecodeStatus,
+}
+
+impl CharsetCodec for InvalidDecodeStatusCodec {
+    type Unit = u8;
+
+    fn charset(&self) -> Charset {
+        Charset::ASCII
+    }
+
+    fn max_units_per_char(&self) -> usize {
+        1
+    }
+
+    fn decode_one(&self, _input: &[u8], _index: usize) -> CharsetDecodeResult<DecodeStatus> {
+        Ok(self.status)
+    }
+
+    fn encode_one(&self, _ch: char, _output: &mut [u8], index: usize) -> CharsetEncodeResult<usize> {
+        let kind = CharsetEncodeErrorKind::BufferTooSmall {
+            required: index + 1,
+            available: 0,
+        };
+        Err(CharsetEncodeError::new(Charset::ASCII, kind, index))
+    }
+}
+
 #[test]
 fn test_charset_decoder_exposes_configuration_and_bounds() {
     let mut decoder = CharsetDecoder::new(Utf8Codec);
@@ -181,4 +210,32 @@ fn test_charset_decoder_propagates_non_policy_decoding_errors() {
         CharsetDecodeErrorKind::IncompleteSequence { .. },
     ));
     assert_eq!(0, error.index());
+}
+
+#[test]
+#[should_panic(expected = "Complete with zero consumed units")]
+fn test_charset_decoder_asserts_complete_consumes_input() {
+    let mut output = ['\0'; 1];
+    let mut decoder = CharsetDecoder::new(InvalidDecodeStatusCodec {
+        status: DecodeStatus::Complete {
+            value: 'A',
+            consumed: 0,
+        },
+    });
+
+    let _ = decoder.convert(b"A", 0, &mut output, 0);
+}
+
+#[test]
+#[should_panic(expected = "required input length that is not beyond current input")]
+fn test_charset_decoder_asserts_need_more_uses_absolute_required_length() {
+    let mut output = ['\0'; 1];
+    let mut decoder = CharsetDecoder::new(InvalidDecodeStatusCodec {
+        status: DecodeStatus::NeedMore {
+            required: 1,
+            available: 2,
+        },
+    });
+
+    let _ = decoder.convert(b"AB", 0, &mut output, 0);
 }

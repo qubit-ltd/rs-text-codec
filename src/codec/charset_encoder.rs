@@ -70,6 +70,13 @@ where
     /// [`UnmappableAction::Replace`] and whose replacement character is
     /// [`CharsetEncoder::DEFAULT_REPLACEMENT`]. If the default cannot be encoded
     /// by the codec, [`CharsetEncoder::DEFAULT_FALLBACK_REPLACEMENT`] is used.
+    ///
+    /// # Panics
+    ///
+    /// Panics when neither [`Self::DEFAULT_REPLACEMENT`] nor
+    /// [`Self::DEFAULT_FALLBACK_REPLACEMENT`] can be encoded by `codec`.
+    /// Built-in codecs can always encode the fallback `?`; failure here means
+    /// the supplied codec cannot encode a minimal ASCII replacement.
     #[must_use]
     pub fn new(codec: C) -> Self {
         let mut encoder = Self {

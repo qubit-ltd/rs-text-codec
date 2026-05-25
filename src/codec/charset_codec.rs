@@ -60,8 +60,13 @@ pub trait CharsetCodec {
     /// # Returns
     ///
     /// Returns [`DecodeStatus::Complete`] when one scalar value is available.
+    /// Its `consumed` value must be greater than zero and must not exceed
+    /// `input.len() - index`.
+    ///
     /// Returns [`DecodeStatus::NeedMore`] when the current prefix is valid but
-    /// incomplete.
+    /// incomplete. Its `required` value is the absolute input length required
+    /// to complete the current value and must be greater than `input.len()`;
+    /// its `available` value is `input.len() - index`.
     ///
     /// # Errors
     ///

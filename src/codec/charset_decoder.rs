@@ -166,6 +166,11 @@ where
     }
 
     /// Decodes source units into Unicode scalar values while applying malformed policy.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the wrapped codec violates the [`DecodeStatus`] invariants
+    /// documented by [`CharsetCodec::decode_one`].
     fn convert(
         &mut self,
         input: &[C::Unit],
@@ -203,11 +208,28 @@ where
             }
             match self.codec.decode_one(input, input_cursor) {
                 Ok(DecodeStatus::Complete { value, consumed }) => {
+                    assert!(
+                        consumed > 0,
+                        "CharsetCodec::decode_one returned Complete with zero consumed units",
+                    );
+                    assert!(
+                        consumed <= input.len() - input_cursor,
+                        "CharsetCodec::decode_one consumed beyond available input",
+                    );
                     output[output_cursor] = value;
                     input_cursor += consumed;
                     output_cursor += 1;
                 }
                 Ok(DecodeStatus::NeedMore { required, available }) => {
+                    assert_eq!(
+                        input.len() - input_cursor,
+                        available,
+                        "CharsetCodec::decode_one returned NeedMore with inconsistent available units",
+                    );
+                    assert!(
+                        required > input.len(),
+                        "CharsetCodec::decode_one returned NeedMore with required input length that is not beyond current input",
+                    );
                     let needed = required.saturating_sub(input_cursor);
                     let status = CoderStatus::NeedInput {
                         input_index: input_cursor,

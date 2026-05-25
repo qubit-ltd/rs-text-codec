@@ -34,7 +34,7 @@ API reference documentation is available on [docs.rs](https://docs.rs/qubit-text
 ```toml
 [dependencies]
 qubit-text-codec = "0.1"
-qubit-io = "0.2"
+qubit-io = "0.5"
 ```
 
 ## Quick Example

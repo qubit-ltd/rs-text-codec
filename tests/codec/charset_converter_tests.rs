@@ -109,10 +109,10 @@ impl CharsetCodec for NeedOutputNoReadCodec {
         1
     }
 
-    fn decode_one(&self, _input: &[u8], _index: usize) -> CharsetDecodeResult<DecodeStatus> {
+    fn decode_one(&self, input: &[u8], index: usize) -> CharsetDecodeResult<DecodeStatus> {
         Ok(DecodeStatus::NeedMore {
-            required: 1,
-            available: 0,
+            required: input.len() + 1,
+            available: input.len().saturating_sub(index),
         })
     }
 

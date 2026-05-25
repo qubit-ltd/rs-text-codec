@@ -34,7 +34,7 @@ API 参考文档可在 [docs.rs](https://docs.rs/qubit-text-codec) 查看。
 ```toml
 [dependencies]
 qubit-text-codec = "0.1"
-qubit-io = "0.2"
+qubit-io = "0.5"
 ```
 
 ## 快速示例
